@@ -1,0 +1,420 @@
+// Tab 2: Bid Request Generator
+
+function generateBidRequest() {
+  try {
+    const campaignJson = document.getElementById('generatorCampaignJson').value.trim();
+
+    if (!campaignJson) {
+      throw new Error('Please enter campaign data');
+    }
+
+    let campaign = JSON.parse(campaignJson);
+    if (Array.isArray(campaign)) {
+      campaign = campaign[0];
+    }
+
+    const bidRequest = buildBidRequestFromCampaign(campaign);
+
+    const output = document.getElementById('generatedBidRequest');
+    output.textContent = JSON.stringify(bidRequest, null, 2);
+
+    showStatus('success', '✓ Bid request generated!');
+
+  } catch (err) {
+    console.error('Generation error:', err);
+    showStatus('error', 'Error: ' + err.message);
+    document.getElementById('generatedBidRequest').textContent =
+      `Error: ${err.message}`;
+  }
+}
+
+function buildBidRequestFromCampaign(campaign) {
+  const timestamp = Date.now();
+  const random = Math.floor(Math.random() * 1000000);
+
+  // Base structure
+  const bidRequest = {
+    id: `test-${timestamp}-${random}`,
+    imp: [],
+    cur: [campaign.currency || 'USD'],
+    at: 1
+  };
+
+  // Build impression
+  const imp = buildImpression(campaign);
+  bidRequest.imp.push(imp);
+
+  // Build site or app
+  const inventoryType = parsePgArray(campaign.inventory_type_allowlist);
+  if (!inventoryType || inventoryType.length === 0 || inventoryType.includes('WEB')) {
+    bidRequest.site = buildSite(campaign);
+  } else if (inventoryType.includes('MOBILE_APP')) {
+    bidRequest.app = buildApp(campaign);
+  } else {
+    // Default to site
+    bidRequest.site = buildSite(campaign);
+  }
+
+  // Build device
+  bidRequest.device = buildDevice(campaign);
+
+  // Build source
+  const supplySource = parsePgArray(campaign.supply_source_allowlist);
+  if (supplySource && supplySource.length > 0) {
+    bidRequest.source = {
+      ext: {
+        supply_source: supplySource[0]
+      }
+    };
+  }
+
+  return bidRequest;
+}
+
+function buildImpression(campaign) {
+  const imp = {
+    id: "1",
+    secure: 1
+  };
+
+  // Add tagid if available
+  const adUnitIds = parsePgArray(campaign.ad_unit_id_allowlist);
+  if (adUnitIds && adUnitIds.length > 0) {
+    imp.tagid = adUnitIds[0];
+  }
+
+  // Build banner or video based on media_type
+  const mediaType = campaign.media_type;
+
+  if (mediaType === 'DISPLAY') {
+    imp.banner = buildBanner(campaign);
+  } else if (mediaType === 'VIDEO_INSTREAM') {
+    imp.video = buildVideo(campaign, 1, 1); // placement=1, linearity=1
+  } else if (mediaType === 'VIDEO_OUTSTREAM') {
+    imp.video = buildVideo(campaign, 3, 2); // placement=3, linearity=2
+  } else {
+    // Default to banner
+    imp.banner = buildBanner(campaign);
+  }
+
+  // Set bidfloor (80% of campaign price)
+  if (campaign.price) {
+    const price = parseFloat(campaign.price);
+    imp.bidfloor = parseFloat((price * 0.8).toFixed(4));
+    imp.bidfloorcur = campaign.currency || 'USD';
+  }
+
+  // Set interstitial
+  const interstitial = parseBoolean(campaign.interstitial);
+  imp.instl = interstitial ? 1 : 0;
+
+  // Add PMP if deal exists
+  if (campaign.deal_code) {
+    imp.pmp = buildPmp(campaign);
+  }
+
+  return imp;
+}
+
+function buildBanner(campaign) {
+  const banner = {};
+
+  if (campaign.width) {
+    banner.w = parseInt(campaign.width);
+  }
+
+  if (campaign.height) {
+    banner.h = parseInt(campaign.height);
+  }
+
+  // Add mime types if available
+  const mimeTypes = parsePgArray(campaign.mime_types);
+  if (mimeTypes && mimeTypes.length > 0) {
+    banner.mimes = mimeTypes;
+  }
+
+  // Add API frameworks if available
+  const apiFrameworks = parsePgArray(campaign.api_frameworks);
+  if (apiFrameworks && apiFrameworks.length > 0) {
+    banner.api = apiFrameworks.map(api => parseInt(api));
+  }
+
+  return banner;
+}
+
+function buildVideo(campaign, placement, linearity) {
+  const video = {
+    placement: placement,
+    linearity: linearity
+  };
+
+  if (campaign.width) {
+    video.w = parseInt(campaign.width);
+  }
+
+  if (campaign.height) {
+    video.h = parseInt(campaign.height);
+  }
+
+  // Duration
+  if (campaign.duration) {
+    const duration = parseInt(campaign.duration);
+    video.minduration = duration;
+    video.maxduration = duration;
+  }
+
+  // Skippable
+  const skippable = parseBoolean(campaign.is_skippable);
+  if (skippable !== null) {
+    video.skip = skippable ? 1 : 0;
+  }
+
+  // Protocols
+  const protocols = parsePgArray(campaign.protocols);
+  if (protocols && protocols.length > 0) {
+    video.protocols = protocols.map(p => parseInt(p));
+  }
+
+  // Playback methods
+  const playbackMethods = parsePgArray(campaign.playback_methods);
+  if (playbackMethods && playbackMethods.length > 0) {
+    video.playbackmethod = playbackMethods.map(pm => parseInt(pm));
+  }
+
+  // Mime types
+  const mimeTypes = parsePgArray(campaign.mime_types);
+  if (mimeTypes && mimeTypes.length > 0) {
+    video.mimes = mimeTypes;
+  }
+
+  // API frameworks
+  const apiFrameworks = parsePgArray(campaign.api_frameworks);
+  if (apiFrameworks && apiFrameworks.length > 0) {
+    video.api = apiFrameworks.map(api => parseInt(api));
+  }
+
+  return video;
+}
+
+function buildSite(campaign) {
+  const site = {};
+
+  // Site ID
+  const siteIds = parsePgArray(campaign.site_id_allowlist);
+  if (siteIds && siteIds.length > 0) {
+    site.id = siteIds[0];
+  }
+
+  // Domain
+  const domains = parsePgArray(campaign.domain_allowlist);
+  if (domains && domains.length > 0) {
+    site.domain = domains[0];
+  }
+
+  // Site name
+  const siteNames = parsePgArray(campaign.site_name_allowlist);
+  if (siteNames && siteNames.length > 0) {
+    site.name = siteNames[0];
+  }
+
+  // Publisher
+  const publisherIds = parsePgArray(campaign.publisher_id_allowlist);
+  const publisherNames = parsePgArray(campaign.publisher_name_allowlist);
+
+  if (publisherIds || publisherNames) {
+    site.publisher = {};
+    if (publisherIds && publisherIds.length > 0) {
+      site.publisher.id = publisherIds[0];
+    }
+    if (publisherNames && publisherNames.length > 0) {
+      site.publisher.name = publisherNames[0];
+    }
+  }
+
+  // IAB categories
+  const iabCategories = parsePgArray(campaign.iab_categories);
+  if (iabCategories && iabCategories.length > 0) {
+    site.cat = iabCategories;
+  }
+
+  return site;
+}
+
+function buildApp(campaign) {
+  const app = {};
+
+  // App ID
+  const siteIds = parsePgArray(campaign.site_id_allowlist);
+  if (siteIds && siteIds.length > 0) {
+    app.id = siteIds[0];
+  }
+
+  // Bundle (use domain as bundle for apps)
+  const domains = parsePgArray(campaign.domain_allowlist);
+  if (domains && domains.length > 0) {
+    app.bundle = domains[0];
+  }
+
+  // App name
+  const siteNames = parsePgArray(campaign.site_name_allowlist);
+  if (siteNames && siteNames.length > 0) {
+    app.name = siteNames[0];
+  }
+
+  // Publisher
+  const publisherIds = parsePgArray(campaign.publisher_id_allowlist);
+  const publisherNames = parsePgArray(campaign.publisher_name_allowlist);
+
+  if (publisherIds || publisherNames) {
+    app.publisher = {};
+    if (publisherIds && publisherIds.length > 0) {
+      app.publisher.id = publisherIds[0];
+    }
+    if (publisherNames && publisherNames.length > 0) {
+      app.publisher.name = publisherNames[0];
+    }
+  }
+
+  // IAB categories
+  const iabCategories = parsePgArray(campaign.iab_categories);
+  if (iabCategories && iabCategories.length > 0) {
+    app.cat = iabCategories;
+  }
+
+  return app;
+}
+
+function buildDevice(campaign) {
+  const device = {
+    ip: "192.168.1.100",
+    ua: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+  };
+
+  // OS
+  const osList = parsePgArray(campaign.os_allowlist);
+  if (osList && osList.length > 0) {
+    device.os = osList[0];
+  }
+
+  // Device type
+  const deviceTypes = parsePgArray(campaign.device_type_allowlist);
+  if (deviceTypes && deviceTypes.length > 0) {
+    device.devicetype = parseInt(deviceTypes[0]);
+  }
+
+  // Language
+  const languages = parsePgArray(campaign.browser_language_allowlist);
+  if (languages && languages.length > 0) {
+    device.language = languages[0];
+  }
+
+  // Connection type
+  const connectionTypes = parsePgArray(campaign.connection_type_allowlist);
+  if (connectionTypes && connectionTypes.length > 0) {
+    device.connectiontype = parseInt(connectionTypes[0]);
+  }
+
+  // ISP
+  const isps = parsePgArray(campaign.isp_allowlist);
+  if (isps && isps.length > 0) {
+    device.isp = isps[0];
+  }
+
+  // Device make/model
+  const devices = parsePgArray(campaign.device_allowlist);
+  if (devices && devices.length > 0) {
+    device.make = devices[0];
+  }
+
+  // Geo
+  device.geo = buildGeo(campaign);
+
+  return device;
+}
+
+function buildGeo(campaign) {
+  const geo = {};
+
+  // Country
+  const geoList = parsePgArray(campaign.geo_allowlist);
+  if (geoList && geoList.length > 0) {
+    geo.country = geoList[0];
+  }
+
+  // Postal code
+  const postalCodes = parsePgArray(campaign.postal_code_allowlist);
+  if (postalCodes && postalCodes.length > 0) {
+    geo.zip = postalCodes[0];
+  }
+
+  return geo;
+}
+
+function buildPmp(campaign) {
+  const pmp = {
+    private_auction: 0,
+    deals: []
+  };
+
+  const deal = {
+    id: campaign.deal_code
+  };
+
+  if (campaign.deal_ask_price) {
+    deal.bidfloor = parseFloat(campaign.deal_ask_price);
+  }
+
+  if (campaign.deal_currency) {
+    deal.bidfloorcur = campaign.deal_currency;
+  }
+
+  // Auction type
+  if (campaign.deal_auction_type) {
+    if (campaign.deal_auction_type === 'FIRST_PRICE') {
+      deal.at = 1;
+    } else if (campaign.deal_auction_type === 'FIXED_PRICE') {
+      deal.at = 3;
+    }
+  }
+
+  pmp.deals.push(deal);
+
+  return pmp;
+}
+
+function copyGeneratedBidRequest() {
+  const bidRequest = document.getElementById('generatedBidRequest').textContent;
+
+  if (!bidRequest || bidRequest.startsWith('--') || bidRequest.startsWith('Error:')) {
+    showStatus('error', 'Nothing to copy. Generate a bid request first.');
+    return;
+  }
+
+  copyToClipboard(bidRequest);
+}
+
+function loadGeneratorSample() {
+  const sampleCampaign = [
+    {
+      "line_item_id": "100000318",
+      "media_type": "DISPLAY",
+      "width": "320",
+      "height": "480",
+      "price": "2",
+      "price_type": "CPM",
+      "currency": "EUR",
+      "interstitial": "false",
+      "start_date": "2025-11-13T03:00:00Z",
+      "end_date": "2025-11-25T20:59:00Z",
+      "postal_code_allowlist": "{26100,36022,40017}",
+      "inventory_type_allowlist": "{WEB}",
+      "domain_allowlist": "{3bmeteo.com,adnkronos.com,ansa.it}",
+      "supply_source_allowlist": "{Equativ,VIS.X}",
+      "domain_blocklist": "{\"null\"}"
+    }
+  ];
+
+  document.getElementById('generatorCampaignJson').value = JSON.stringify(sampleCampaign, null, 2);
+
+  showStatus('success', '✓ Sample campaign loaded!');
+}
