@@ -37,7 +37,8 @@ function buildBidRequestFromCampaign(campaign) {
     id: `test-${timestamp}-${random}`,
     imp: [],
     cur: [campaign.currency || 'USD'],
-    at: 1
+    at: 1,
+    tmax: 120
   };
 
   // Build impression
@@ -58,15 +59,14 @@ function buildBidRequestFromCampaign(campaign) {
   // Build device
   bidRequest.device = buildDevice(campaign);
 
-  // Build source
-  const supplySource = parsePgArray(campaign.supply_source_allowlist);
-  if (supplySource && supplySource.length > 0) {
-    bidRequest.source = {
-      ext: {
-        supply_source: supplySource[0]
-      }
-    };
-  }
+  // Build user
+  bidRequest.user = buildUser(campaign);
+
+  // Build source (including schain)
+  bidRequest.source = buildSource(campaign, timestamp);
+
+  // Build regs (regulatory)
+  bidRequest.regs = buildRegs(campaign);
 
   return bidRequest;
 }
@@ -74,7 +74,9 @@ function buildBidRequestFromCampaign(campaign) {
 function buildImpression(campaign) {
   const imp = {
     id: "1",
-    secure: 1
+    secure: 1,
+    displaymanager: "test-tool",
+    displaymanagerver: "1.0"
   };
 
   // Add tagid if available
@@ -117,7 +119,9 @@ function buildImpression(campaign) {
 }
 
 function buildBanner(campaign) {
-  const banner = {};
+  const banner = {
+    pos: 0
+  };
 
   if (campaign.width) {
     banner.w = parseInt(campaign.width);
@@ -127,10 +131,20 @@ function buildBanner(campaign) {
     banner.h = parseInt(campaign.height);
   }
 
-  // Add mime types if available
+  // Add format array for multi-size support
+  if (campaign.width && campaign.height) {
+    banner.format = [{
+      w: parseInt(campaign.width),
+      h: parseInt(campaign.height)
+    }];
+  }
+
+  // Add mime types if available, otherwise defaults
   const mimeTypes = parsePgArray(campaign.mime_types);
   if (mimeTypes && mimeTypes.length > 0) {
     banner.mimes = mimeTypes;
+  } else {
+    banner.mimes = ["image/jpeg", "image/png", "image/gif"];
   }
 
   // Add API frameworks if available
@@ -138,6 +152,10 @@ function buildBanner(campaign) {
   if (apiFrameworks && apiFrameworks.length > 0) {
     banner.api = apiFrameworks.map(api => parseInt(api));
   }
+
+  // Add banner type attributes
+  banner.btype = [];
+  banner.battr = [];
 
   return banner;
 }
@@ -197,7 +215,9 @@ function buildVideo(campaign, placement, linearity) {
 }
 
 function buildSite(campaign) {
-  const site = {};
+  const site = {
+    mobile: 0
+  };
 
   // Site ID
   const siteIds = parsePgArray(campaign.site_id_allowlist);
@@ -209,6 +229,7 @@ function buildSite(campaign) {
   const domains = parsePgArray(campaign.domain_allowlist);
   if (domains && domains.length > 0) {
     site.domain = domains[0];
+    site.page = `https://${domains[0]}/page-${Math.floor(Math.random() * 1000)}`;
   }
 
   // Site name
@@ -253,6 +274,7 @@ function buildApp(campaign) {
   const domains = parsePgArray(campaign.domain_allowlist);
   if (domains && domains.length > 0) {
     app.bundle = domains[0];
+    app.storeurl = `https://play.google.com/store/apps/details?id=${domains[0]}`;
   }
 
   // App name
@@ -287,19 +309,27 @@ function buildApp(campaign) {
 function buildDevice(campaign) {
   const device = {
     ip: "192.168.1.100",
-    ua: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    ua: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    dnt: 0,
+    lmt: 0,
+    w: 1920,
+    h: 1080,
+    pxratio: 1.0
   };
 
   // OS
   const osList = parsePgArray(campaign.os_allowlist);
   if (osList && osList.length > 0) {
     device.os = osList[0];
+    device.osv = "10.0";
   }
 
   // Device type
   const deviceTypes = parsePgArray(campaign.device_type_allowlist);
   if (deviceTypes && deviceTypes.length > 0) {
     device.devicetype = parseInt(deviceTypes[0]);
+  } else {
+    device.devicetype = 2; // Default to PC
   }
 
   // Language
@@ -323,7 +353,11 @@ function buildDevice(campaign) {
   // Device make/model
   const devices = parsePgArray(campaign.device_allowlist);
   if (devices && devices.length > 0) {
-    device.make = devices[0];
+    const deviceParts = devices[0].split(' ');
+    device.make = deviceParts[0];
+    if (deviceParts.length > 1) {
+      device.model = deviceParts.slice(1).join(' ');
+    }
   }
 
   // Geo
@@ -380,6 +414,60 @@ function buildPmp(campaign) {
   pmp.deals.push(deal);
 
   return pmp;
+}
+
+function buildUser(campaign) {
+  const user = {
+    id: `user-${Math.floor(Math.random() * 1000000000)}`
+  };
+
+  // Add buyeruid if available
+  user.buyeruid = `buyer-${Math.floor(Math.random() * 1000000000)}`;
+
+  return user;
+}
+
+function buildSource(campaign, timestamp) {
+  const supplySource = parsePgArray(campaign.supply_source_allowlist);
+
+  const source = {
+    fd: 1,
+    tid: `${timestamp}-${Math.floor(Math.random() * 100000)}`,
+    ext: {}
+  };
+
+  // Add supply_source to ext if available
+  if (supplySource && supplySource.length > 0) {
+    source.ext.supply_source = supplySource[0];
+  }
+
+  // Add supply chain (schain)
+  source.ext.schain = {
+    complete: 1,
+    ver: "1.0",
+    nodes: [
+      {
+        asi: "example-ssp.com",
+        sid: "00001",
+        hp: 1,
+        rid: source.tid
+      }
+    ]
+  };
+
+  return source;
+}
+
+function buildRegs(campaign) {
+  const regs = {
+    coppa: 0,
+    ext: {
+      gdpr: 0,
+      us_privacy: "1---"
+    }
+  };
+
+  return regs;
 }
 
 function copyGeneratedBidRequest() {
