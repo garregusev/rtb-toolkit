@@ -509,7 +509,10 @@ function buildUser(campaign) {
     buyeruid: `buyer-${Math.floor(Math.random() * 1000000000)}`,
     yob: 1990,
     gender: "M",
-    keywords: "sports,tech,news"
+    keywords: "sports,tech,news",
+    ext: {
+      consent: "CPXxRfAPXxRfAAfKABENB-CgAAAAAAAAAAYgAAAAAAAA"
+    }
   };
 
   return user;
@@ -550,7 +553,8 @@ function buildRegs(campaign) {
   const regs = {
     coppa: 0,
     ext: {
-      gdpr: 0,
+      gdpr: 1,
+      consent: "CPXxRfAPXxRfAAfKABENB-CgAAAAAAAAAAYgAAAAAAAA",
       us_privacy: "1---"
     }
   };
