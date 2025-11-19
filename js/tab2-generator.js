@@ -505,13 +505,10 @@ function buildPmp(campaign) {
 
 function buildUser(campaign) {
   const user = {
-    id: `user-${Math.floor(Math.random() * 1000000000)}`,
-    buyeruid: `buyer-${Math.floor(Math.random() * 1000000000)}`,
-    yob: 1990,
-    gender: "M",
-    keywords: "sports,tech,news",
+    id: "227c754a-96a8-4275-9bcd-75b1fa1cf200",
     ext: {
-      consent: "CPXxRfAPXxRfAAfKABENB-CgAAAAAAAAAAYgAAAAAAAA"
+      consent: "CQEhaLAQEhaLAAfTyBENBGFsAP_AAEPAAAigJqtV_G__bXlr-Xr36ftkeY1f99h77sQxBhfJs-4FyDvW_JwX32EyNA26tqYKmRIAuzZBIQFtGJjURVChSogVrTDsYkGcgTNKJ-BkgHMRa2dYCFxvmYljeQKZ5vp_d1d52R_t7dr-3dzyz5Fnv3Y9P2ZlUIidC58tH_n_bRAACAAAUAAQAAEApAAAEQMKRQAQICmAggQAgoihQQAQIJqgEmGhUQBlgSEhBoGEECAFQVhARQIAAAASBogIASBgU7AwCXWEiAAAKAAYIAQAAoyABAAAJAAhEAEABQIAAIBAoAAAAABAIAGBgADABYCAQAAgOgYhgQQKBYAJGZEQpgQhAJBAS2VCCQBAgrhAEGWBBAIiYCAAAEgArAAAAAAAAEAAAAAAAoAAAAAAABAAAACgAAgQAggCBAAAQIAA",
+      google_consent: []
     }
   };
 
@@ -554,7 +551,7 @@ function buildRegs(campaign) {
     coppa: 0,
     ext: {
       gdpr: 1,
-      consent: "CPXxRfAPXxRfAAfKABENB-CgAAAAAAAAAAYgAAAAAAAA",
+      consent: "CQEhaLAQEhaLAAfTyBENBGFsAP_AAEPAAAigJqtV_G__bXlr-Xr36ftkeY1f99h77sQxBhfJs-4FyDvW_JwX32EyNA26tqYKmRIAuzZBIQFtGJjURVChSogVrTDsYkGcgTNKJ-BkgHMRa2dYCFxvmYljeQKZ5vp_d1d52R_t7dr-3dzyz5Fnv3Y9P2ZlUIidC58tH_n_bRAACAAAUAAQAAEApAAAEQMKRQAQICmAggQAgoihQQAQIJqgEmGhUQBlgSEhBoGEECAFQVhARQIAAAASBogIASBgU7AwCXWEiAAAKAAYIAQAAoyABAAAJAAhEAEABQIAAIBAoAAAAABAIAGBgADABYCAQAAgOgYhgQQKBYAJGZEQpgQhAJBAS2VCCQBAgrhAEGWBBAIiYCAAAEgArAAAAAAAAEAAAAAAAoAAAAAAABAAAACgAAgQAggCBAAAQIAA",
       us_privacy: "1---"
     }
   };
