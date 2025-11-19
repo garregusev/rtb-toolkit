@@ -38,7 +38,11 @@ function buildBidRequestFromCampaign(campaign) {
     imp: [],
     cur: [campaign.currency || 'USD'],
     at: 1,
-    tmax: 120
+    tmax: 120,
+    test: campaign.test_flag ? 1 : 0,
+    allimps: 0,
+    bcat: [],
+    badv: []
   };
 
   // Build impression
@@ -120,7 +124,12 @@ function buildImpression(campaign) {
 
 function buildBanner(campaign) {
   const banner = {
-    pos: 0
+    id: "1",
+    pos: 0,
+    topframe: 1,
+    expdir: [1, 2, 3, 4],
+    btype: [],
+    battr: []
   };
 
   if (campaign.width) {
@@ -144,7 +153,7 @@ function buildBanner(campaign) {
   if (mimeTypes && mimeTypes.length > 0) {
     banner.mimes = mimeTypes;
   } else {
-    banner.mimes = ["image/jpeg", "image/png", "image/gif"];
+    banner.mimes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
   }
 
   // Add API frameworks if available
@@ -153,17 +162,21 @@ function buildBanner(campaign) {
     banner.api = apiFrameworks.map(api => parseInt(api));
   }
 
-  // Add banner type attributes
-  banner.btype = [];
-  banner.battr = [];
-
   return banner;
 }
 
 function buildVideo(campaign, placement, linearity) {
   const video = {
     placement: placement,
-    linearity: linearity
+    linearity: linearity,
+    sequence: 1,
+    startdelay: 0,
+    minbitrate: 300,
+    maxbitrate: 1500,
+    boxingallowed: 1,
+    delivery: [2],
+    pos: 0,
+    battr: []
   };
 
   if (campaign.width) {
@@ -179,30 +192,43 @@ function buildVideo(campaign, placement, linearity) {
     const duration = parseInt(campaign.duration);
     video.minduration = duration;
     video.maxduration = duration;
+  } else {
+    video.minduration = 5;
+    video.maxduration = 30;
   }
 
   // Skippable
   const skippable = parseBoolean(campaign.is_skippable);
   if (skippable !== null) {
     video.skip = skippable ? 1 : 0;
+    if (skippable) {
+      video.skipmin = 5;
+      video.skipafter = 5;
+    }
   }
 
   // Protocols
   const protocols = parsePgArray(campaign.protocols);
   if (protocols && protocols.length > 0) {
     video.protocols = protocols.map(p => parseInt(p));
+  } else {
+    video.protocols = [2, 3, 5, 6];
   }
 
   // Playback methods
   const playbackMethods = parsePgArray(campaign.playback_methods);
   if (playbackMethods && playbackMethods.length > 0) {
     video.playbackmethod = playbackMethods.map(pm => parseInt(pm));
+  } else {
+    video.playbackmethod = [1, 2];
   }
 
   // Mime types
   const mimeTypes = parsePgArray(campaign.mime_types);
   if (mimeTypes && mimeTypes.length > 0) {
     video.mimes = mimeTypes;
+  } else {
+    video.mimes = ["video/mp4", "video/webm", "application/javascript"];
   }
 
   // API frameworks
@@ -216,7 +242,8 @@ function buildVideo(campaign, placement, linearity) {
 
 function buildSite(campaign) {
   const site = {
-    mobile: 0
+    mobile: 0,
+    privacypolicy: 1
   };
 
   // Site ID
@@ -230,6 +257,7 @@ function buildSite(campaign) {
   if (domains && domains.length > 0) {
     site.domain = domains[0];
     site.page = `https://${domains[0]}/page-${Math.floor(Math.random() * 1000)}`;
+    site.ref = `https://${domains[0]}`;
   }
 
   // Site name
@@ -250,19 +278,32 @@ function buildSite(campaign) {
     if (publisherNames && publisherNames.length > 0) {
       site.publisher.name = publisherNames[0];
     }
+    // Add publisher domain
+    if (domains && domains.length > 0) {
+      site.publisher.domain = domains[0];
+    }
   }
 
   // IAB categories
   const iabCategories = parsePgArray(campaign.iab_categories);
   if (iabCategories && iabCategories.length > 0) {
     site.cat = iabCategories;
+    site.pagecat = iabCategories;
+    site.sectioncat = iabCategories;
   }
+
+  // Keywords
+  site.keywords = 'news,sports';
 
   return site;
 }
 
 function buildApp(campaign) {
-  const app = {};
+  const app = {
+    ver: '1.0.0',
+    paid: 0,
+    privacypolicy: 1
+  };
 
   // App ID
   const siteIds = parsePgArray(campaign.site_id_allowlist);
@@ -275,6 +316,7 @@ function buildApp(campaign) {
   if (domains && domains.length > 0) {
     app.bundle = domains[0];
     app.storeurl = `https://play.google.com/store/apps/details?id=${domains[0]}`;
+    app.domain = domains[0];
   }
 
   // App name
@@ -295,13 +337,22 @@ function buildApp(campaign) {
     if (publisherNames && publisherNames.length > 0) {
       app.publisher.name = publisherNames[0];
     }
+    // Add publisher domain
+    if (domains && domains.length > 0) {
+      app.publisher.domain = domains[0];
+    }
   }
 
   // IAB categories
   const iabCategories = parsePgArray(campaign.iab_categories);
   if (iabCategories && iabCategories.length > 0) {
     app.cat = iabCategories;
+    app.pagecat = iabCategories;
+    app.sectioncat = iabCategories;
   }
+
+  // Keywords
+  app.keywords = 'gaming,entertainment';
 
   return app;
 }
@@ -314,7 +365,10 @@ function buildDevice(campaign) {
     lmt: 0,
     w: 1920,
     h: 1080,
-    pxratio: 1.0
+    pxratio: 1.0,
+    js: 1,
+    hwv: "1.0",
+    ifa: "6D92078A-8246-4BA4-AE5B-76104861E7DC"
   };
 
   // OS
@@ -367,12 +421,42 @@ function buildDevice(campaign) {
 }
 
 function buildGeo(campaign) {
-  const geo = {};
+  const geo = {
+    type: 2, // IP address location
+    lat: 52.5200,
+    lon: 13.4050
+  };
 
   // Country
   const geoList = parsePgArray(campaign.geo_allowlist);
   if (geoList && geoList.length > 0) {
     geo.country = geoList[0];
+
+    // Set realistic city/region based on country
+    if (geoList[0] === 'IT' || geoList[0].startsWith('IT')) {
+      geo.lat = 45.4642;
+      geo.lon = 9.1900;
+      geo.city = 'Milan';
+      geo.region = 'IT-25';
+    } else if (geoList[0] === 'DE' || geoList[0].startsWith('DE')) {
+      geo.lat = 52.5200;
+      geo.lon = 13.4050;
+      geo.city = 'Berlin';
+      geo.region = 'DE-BE';
+    } else if (geoList[0] === 'US' || geoList[0].startsWith('US')) {
+      geo.lat = 40.7128;
+      geo.lon = -74.0060;
+      geo.city = 'New York';
+      geo.region = 'US-NY';
+      geo.metro = '501';
+    } else {
+      geo.city = 'Unknown';
+    }
+  } else {
+    // Default to Berlin
+    geo.country = 'DE';
+    geo.city = 'Berlin';
+    geo.region = 'DE-BE';
   }
 
   // Postal code
@@ -380,6 +464,9 @@ function buildGeo(campaign) {
   if (postalCodes && postalCodes.length > 0) {
     geo.zip = postalCodes[0];
   }
+
+  // UTC offset (in minutes)
+  geo.utcoffset = 60;
 
   return geo;
 }
@@ -418,11 +505,12 @@ function buildPmp(campaign) {
 
 function buildUser(campaign) {
   const user = {
-    id: `user-${Math.floor(Math.random() * 1000000000)}`
+    id: `user-${Math.floor(Math.random() * 1000000000)}`,
+    buyeruid: `buyer-${Math.floor(Math.random() * 1000000000)}`,
+    yob: 1990,
+    gender: "M",
+    keywords: "sports,tech,news"
   };
-
-  // Add buyeruid if available
-  user.buyeruid = `buyer-${Math.floor(Math.random() * 1000000000)}`;
 
   return user;
 }
