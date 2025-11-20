@@ -101,6 +101,89 @@ function convertDeviceType(deviceTypeStr) {
   return map[normalized] || null;
 }
 
+// IAB OpenRTB 2.6 Reference Dictionaries for reverse mapping
+const IAB_DEVICE_TYPE = {
+  1: 'Mobile/Tablet',
+  2: 'PC',
+  3: 'TV',
+  4: 'Phone',
+  5: 'Tablet',
+  6: 'Connected Device',
+  7: 'Set Top Box'
+};
+
+const IAB_CONNECTION_TYPE = {
+  0: 'Unknown',
+  1: 'Ethernet',
+  2: 'WiFi',
+  3: 'Cellular (Unknown)',
+  4: 'Cellular 2G',
+  5: 'Cellular 3G',
+  6: 'Cellular 4G',
+  7: 'Cellular 5G'
+};
+
+const IAB_API_FRAMEWORK = {
+  1: 'VPAID 1.0',
+  2: 'VPAID 2.0',
+  3: 'MRAID-1',
+  4: 'ORMMA',
+  5: 'MRAID-2',
+  6: 'MRAID-3',
+  7: 'OMID-1'
+};
+
+const IAB_PROTOCOL = {
+  1: 'VAST 1.0',
+  2: 'VAST 2.0',
+  3: 'VAST 3.0',
+  4: 'VAST 1.0 Wrapper',
+  5: 'VAST 2.0 Wrapper',
+  6: 'VAST 3.0 Wrapper',
+  7: 'VAST 4.0',
+  8: 'VAST 4.0 Wrapper',
+  9: 'DAAST 1.0',
+  10: 'DAAST 1.0 Wrapper',
+  11: 'VAST 4.1',
+  12: 'VAST 4.1 Wrapper',
+  13: 'VAST 4.2',
+  14: 'VAST 4.2 Wrapper'
+};
+
+const IAB_PLAYBACK_METHOD = {
+  1: 'Auto-play, Sound On',
+  2: 'Auto-play, Sound Off',
+  3: 'Click-to-play',
+  4: 'Mouse-over',
+  5: 'Auto-play, Sound Unknown',
+  6: 'Click-to-play, Sound On'
+};
+
+// Get IAB name for device type code
+function getDeviceTypeName(code) {
+  return IAB_DEVICE_TYPE[code] || code;
+}
+
+// Get IAB name for connection type code
+function getConnectionTypeName(code) {
+  return IAB_CONNECTION_TYPE[code] || code;
+}
+
+// Get IAB name for API framework code
+function getApiFrameworkName(code) {
+  return IAB_API_FRAMEWORK[code] || code;
+}
+
+// Get IAB name for protocol code
+function getProtocolName(code) {
+  return IAB_PROTOCOL[code] || code;
+}
+
+// Get IAB name for playback method code
+function getPlaybackMethodName(code) {
+  return IAB_PLAYBACK_METHOD[code] || code;
+}
+
 // Convert string boolean to actual boolean
 function parseBoolean(value) {
   if (typeof value === 'boolean') return value;
