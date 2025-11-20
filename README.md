@@ -62,12 +62,16 @@ Automatically generate valid OpenRTB 2.6 bid requests from campaign data.
    - `#validator` - Validate bid requests
    - `#generator` - Generate bid requests
 
+Currently the project is hosted via Github Pages here: https://garregusev.github.io/rtb-toolkit/
+
 ### Using the Validator
 
-1. Paste your campaign JSON (from `bid_entities` table)
-2. Paste the bid request JSON you want to validate
-3. Click **"Validate Bid Request"**
-4. Review the results table:
+1. Paste your campaign JSON (from `bid_entities` table):
+   - It is a query like `select * from bid_entities where ...`
+   - Each query should select **only one bid entity**
+3. Paste the bid request JSON you want to validate
+4. Click **"Validate Bid Request"**
+5. Review the results table:
    - Red ✗ = Failed targeting check
    - Green ✓ = Passed targeting check
    - Gray — = Not applicable (no targeting rule set)
