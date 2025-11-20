@@ -39,7 +39,7 @@ function buildBidRequestFromCampaign(campaign) {
     cur: [campaign.currency || 'USD'],
     at: 1,
     tmax: 120,
-    test: campaign.test_flag ? 1 : 0,
+    test: parseBoolean(campaign.test_flag) ? 1 : 0,
     allimps: 0,
     bcat: [],
     badv: []
@@ -103,10 +103,10 @@ function buildImpression(campaign) {
     imp.banner = buildBanner(campaign);
   }
 
-  // Set bidfloor (80% of campaign price)
+  // Set bidfloor (5% of campaign price)
   if (campaign.price) {
     const price = parseFloat(campaign.price);
-    imp.bidfloor = parseFloat((price * 0.8).toFixed(4));
+    imp.bidfloor = parseFloat((price * 0.05).toFixed(4));
     imp.bidfloorcur = campaign.currency || 'USD';
   }
 
@@ -378,12 +378,24 @@ function buildDevice(campaign) {
     device.osv = "10.0";
   }
 
-  // Device type
+  // Device type - convert string names to OpenRTB integers
   const deviceTypes = parsePgArray(campaign.device_type_allowlist);
   if (deviceTypes && deviceTypes.length > 0) {
-    device.devicetype = parseInt(deviceTypes[0]);
-  } else {
-    device.devicetype = 2; // Default to PC
+    // Try to convert if it's a string name like "Phone" or "Tablet"
+    const deviceTypeInt = parseInt(deviceTypes[0]);
+    if (!isNaN(deviceTypeInt)) {
+      device.devicetype = deviceTypeInt;
+    } else {
+      const converted = convertDeviceType(deviceTypes[0]);
+      if (converted) {
+        device.devicetype = converted;
+      }
+    }
+  }
+
+  // Default to PC if not set
+  if (!device.devicetype) {
+    device.devicetype = 2;
   }
 
   // Language
@@ -567,6 +579,14 @@ function buildRegs(campaign) {
   };
 
   return regs;
+}
+
+function clearGeneratorInputs() {
+  if (confirm('Are you sure you want to clear all inputs?')) {
+    document.getElementById('generatorCampaignJson').value = '';
+    document.getElementById('generatedBidRequest').textContent = '-- Click "Generate Bid Request"';
+    showStatus('info', 'Inputs cleared');
+  }
 }
 
 function copyGeneratedBidRequest() {

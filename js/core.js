@@ -81,6 +81,26 @@ function parseLquery(lqueryString) {
   return baseValue || null;
 }
 
+// Convert device type strings to OpenRTB integers
+// OpenRTB 2.6 device types: 1=Mobile/Tablet, 2=PC, 3=TV, 4=Phone, 5=Tablet, 6=Connected Device, 7=Set Top Box
+function convertDeviceType(deviceTypeStr) {
+  const map = {
+    'phone': 4,
+    'tablet': 5,
+    'pc': 2,
+    'desktop': 2,
+    'tv': 3,
+    'ctv': 3,
+    'connected tv': 3,
+    'connected device': 6,
+    'set top box': 7,
+    'mobile': 1
+  };
+
+  const normalized = deviceTypeStr.toLowerCase().trim();
+  return map[normalized] || null;
+}
+
 // Convert string boolean to actual boolean
 function parseBoolean(value) {
   if (typeof value === 'boolean') return value;

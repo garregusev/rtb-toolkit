@@ -56,6 +56,7 @@ function performValidation(campaign, bidRequest) {
   const results = [];
   
   // Always add all validations - they return objects even if no campaign value
+  results.push(validateTestFlag(campaign, bidRequest));
   results.push(validateMediaType(campaign, bidRequest));
   results.push(validateWidth(campaign, bidRequest));
   results.push(validateHeight(campaign, bidRequest));
@@ -96,6 +97,30 @@ function performValidation(campaign, bidRequest) {
 }
 
 // Individual validation functions
+
+function validateTestFlag(campaign, bidRequest) {
+  const campaignTestFlag = parseBoolean(campaign.test_flag);
+  const bidRequestTest = bidRequest.test;
+
+  if (campaignTestFlag === null) {
+    return {
+      field: 'test_flag',
+      campaignValue: 'not set',
+      bidRequestValue: bidRequestTest !== undefined ? bidRequestTest : 'not specified',
+      match: null
+    };
+  }
+
+  const expectedTest = campaignTestFlag ? 1 : 0;
+  const match = bidRequestTest === expectedTest;
+
+  return {
+    field: 'test_flag',
+    campaignValue: campaignTestFlag,
+    bidRequestValue: bidRequestTest !== undefined ? bidRequestTest : 'not specified',
+    match: bidRequestTest !== undefined ? match : null
+  };
+}
 
 function validateMediaType(campaign, bidRequest) {
   const campaignMediaType = campaign.media_type;
@@ -1536,6 +1561,15 @@ function displayValidationResults(results) {
   </div>`;
   
   container.innerHTML = html;
+}
+
+function clearValidatorInputs() {
+  if (confirm('Are you sure you want to clear all inputs?')) {
+    document.getElementById('campaignJson').value = '';
+    document.getElementById('bidRequestJson').value = '';
+    document.getElementById('validationResults').innerHTML = '';
+    showStatus('info', 'Inputs cleared');
+  }
 }
 
 function loadValidatorSample() {
