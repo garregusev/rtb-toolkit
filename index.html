@@ -14,59 +14,46 @@
     </div>
     
     <div class="tabs">
-      <button class="tab active" data-tab="validator">📊 Bid Request Validator</button>
-      <button class="tab" data-tab="generator">🔄 Bid Request Generator</button>
-      <button class="tab" data-tab="tests">🧪 Auto Tests</button>
+      <a href="#validator" class="tab active" data-tab="validator">📊 Bid Request Validator</a>
+      <a href="#generator" class="tab" data-tab="generator">🔄 Bid Request Generator</a>
     </div>
-    
+
     <!-- Tab 1: Validator -->
     <div id="validator" class="tab-content active">
       <div class="section">
         <label for="campaignJson">Campaign Data (from bid_entities):</label>
         <textarea id="campaignJson" rows="8" placeholder='Paste campaign JSON here...'></textarea>
       </div>
-      
+
       <div class="section">
         <label for="bidRequestJson">Bid Request JSON (OpenRTB 2.6):</label>
         <textarea id="bidRequestJson" rows="10" placeholder='Paste bid request JSON here...'></textarea>
       </div>
-      
+
       <div class="button-group">
         <button class="btn-primary" onclick="validateBidRequest()">🔍 Validate</button>
         <button class="btn-success" onclick="loadValidatorSample()">📝 Load Sample</button>
       </div>
-      
+
       <div id="validationResults" class="output-section"></div>
     </div>
-    
+
     <!-- Tab 2: Generator -->
     <div id="generator" class="tab-content">
       <div class="section">
         <label for="generatorCampaignJson">Campaign Data (from bid_entities):</label>
         <textarea id="generatorCampaignJson" rows="10" placeholder='Paste campaign JSON here...'></textarea>
       </div>
-      
+
       <div class="button-group">
         <button class="btn-primary" onclick="generateBidRequest()">🔄 Generate Bid Request</button>
         <button class="btn-secondary" onclick="copyGeneratedBidRequest()">📋 Copy</button>
         <button class="btn-success" onclick="loadGeneratorSample()">📝 Load Sample</button>
       </div>
-      
+
       <div class="output-section">
         <div class="output-title">Generated Bid Request:</div>
         <pre id="generatedBidRequest">-- Click "Generate Bid Request"</pre>
-      </div>
-    </div>
-    
-    <!-- Tab 3: Tests -->
-    <div id="tests" class="tab-content">
-      <div class="section">
-        <h3>🧪 Automated Tests</h3>
-        <p style="color: #6c757d; margin-bottom: 16px;">
-          Tests validate toolkit functionality on page load.
-        </p>
-        <button class="btn-primary" onclick="runAllTests()">▶️ Run Tests</button>
-        <div id="testResults" class="test-results"></div>
       </div>
     </div>
   </div>
@@ -82,8 +69,11 @@
     window.addEventListener('DOMContentLoaded', () => {
       initializeTabs();
       loadValidatorSample();
-      // Run tests after short delay to let other scripts load
-      setTimeout(runAllTests, 300);
+      // Run tests in console
+      setTimeout(() => {
+        console.log('%c🧪 Running automated tests...', 'color: #6366f1; font-weight: bold; font-size: 14px;');
+        runAllTests();
+      }, 300);
     });
   </script>
 </body>

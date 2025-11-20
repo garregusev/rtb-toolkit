@@ -311,57 +311,6 @@ function test(name, testFn) {
 }
 
 function displayTestResults() {
-  const container = document.getElementById('testResults');
-
-  if (!container) {
-    console.error('Test results container not found');
-    return;
-  }
-
-  let html = '<div class="test-output">';
-
-  // Group by category
-  const categories = [
-    { name: 'Core Utilities', start: 0, count: 8 },
-    { name: 'Validation Logic', start: 8, count: 8 },
-    { name: 'Generator Logic', start: 16, count: 7 }
-  ];
-
-  categories.forEach(category => {
-    html += `<div class="test-category">`;
-    html += `<h4>${category.name}</h4>`;
-    html += `<ul class="test-list">`;
-
-    const categoryResults = testResults.slice(category.start, category.start + category.count);
-
-    categoryResults.forEach(result => {
-      const statusClass = result.passed ? 'test-pass' : 'test-fail';
-      const symbol = result.passed ? '✓' : '✗';
-
-      html += `<li class="${statusClass}">`;
-      html += `<span class="test-symbol">${symbol}</span>`;
-      html += `<span class="test-name">${result.name}</span>`;
-      if (result.error) {
-        html += `<span class="test-error"> - ${result.error}</span>`;
-      }
-      html += `</li>`;
-    });
-
-    html += `</ul></div>`;
-  });
-
-  // Summary
-  const passed = testResults.filter(r => r.passed).length;
-  const failed = testResults.filter(r => !r.passed).length;
-  const total = testResults.length;
-
-  const summaryClass = failed === 0 ? 'status success' : 'status warning';
-
-  html += `<div class="${summaryClass}" style="margin-top: 20px;">`;
-  html += `<strong>Summary:</strong> ${passed} passed, ${failed} failed out of ${total} total tests`;
-  html += `</div>`;
-
-  html += '</div>';
-
-  container.innerHTML = html;
+  // Results are only shown in console now
+  // No UI container needed
 }

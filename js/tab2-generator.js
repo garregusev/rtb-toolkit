@@ -371,10 +371,10 @@ function buildDevice(campaign) {
     ifa: "6D92078A-8246-4BA4-AE5B-76104861E7DC"
   };
 
-  // OS
-  const osList = parsePgArray(campaign.os_allowlist);
-  if (osList && osList.length > 0) {
-    device.os = osList[0];
+  // OS - parse lquery pattern (e.g., "{Android.*}" -> "Android")
+  const os = parseLquery(campaign.os_allowlist);
+  if (os) {
+    device.os = os;
     device.osv = "10.0";
   }
 
@@ -404,10 +404,10 @@ function buildDevice(campaign) {
     device.isp = isps[0];
   }
 
-  // Device make/model
-  const devices = parsePgArray(campaign.device_allowlist);
-  if (devices && devices.length > 0) {
-    const deviceParts = devices[0].split(' ');
+  // Device make/model - parse lquery pattern
+  const devicePattern = parseLquery(campaign.device_allowlist);
+  if (devicePattern) {
+    const deviceParts = devicePattern.split(' ');
     device.make = deviceParts[0];
     if (deviceParts.length > 1) {
       device.model = deviceParts.slice(1).join(' ');
@@ -427,28 +427,38 @@ function buildGeo(campaign) {
     lon: 13.4050
   };
 
-  // Country
-  const geoList = parsePgArray(campaign.geo_allowlist);
-  if (geoList && geoList.length > 0) {
-    geo.country = geoList[0];
+  // Country - parse lquery pattern (e.g., "{DE.*.*}" -> "DE")
+  const countryCode = parseLquery(campaign.geo_allowlist);
+  if (countryCode) {
+    geo.country = countryCode;
 
     // Set realistic city/region based on country
-    if (geoList[0] === 'IT' || geoList[0].startsWith('IT')) {
+    if (countryCode === 'IT') {
       geo.lat = 45.4642;
       geo.lon = 9.1900;
       geo.city = 'Milan';
       geo.region = 'IT-25';
-    } else if (geoList[0] === 'DE' || geoList[0].startsWith('DE')) {
+    } else if (countryCode === 'DE') {
       geo.lat = 52.5200;
       geo.lon = 13.4050;
       geo.city = 'Berlin';
       geo.region = 'DE-BE';
-    } else if (geoList[0] === 'US' || geoList[0].startsWith('US')) {
+    } else if (countryCode === 'US') {
       geo.lat = 40.7128;
       geo.lon = -74.0060;
       geo.city = 'New York';
       geo.region = 'US-NY';
       geo.metro = '501';
+    } else if (countryCode === 'GB') {
+      geo.lat = 51.5074;
+      geo.lon = -0.1278;
+      geo.city = 'London';
+      geo.region = 'GB-ENG';
+    } else if (countryCode === 'FR') {
+      geo.lat = 48.8566;
+      geo.lon = 2.3522;
+      geo.city = 'Paris';
+      geo.region = 'FR-IDF';
     } else {
       geo.city = 'Unknown';
     }

@@ -5,44 +5,44 @@ function parsePgArray(pgArrayString) {
   if (!pgArrayString || pgArrayString === '' || pgArrayString === 'null' || pgArrayString === '""') {
     return null;
   }
-  
+
   // Handle empty arrays
   if (pgArrayString === '{}') return [];
-  
+
   try {
     // Remove outer braces
     let cleaned = pgArrayString.trim();
     if (cleaned.startsWith('{') && cleaned.endsWith('}')) {
       cleaned = cleaned.substring(1, cleaned.length - 1);
     }
-    
+
     if (cleaned === '') return [];
-    
+
     // Handle escaped quotes and complex nested structures
     const result = [];
     let current = '';
     let inQuotes = false;
     let escapeNext = false;
-    
+
     for (let i = 0; i < cleaned.length; i++) {
       const char = cleaned[i];
-      
+
       if (escapeNext) {
         current += char;
         escapeNext = false;
         continue;
       }
-      
+
       if (char === '\\') {
         escapeNext = true;
         continue;
       }
-      
+
       if (char === '"') {
         inQuotes = !inQuotes;
         continue;
       }
-      
+
       if (char === ',' && !inQuotes) {
         if (current.trim()) {
           result.push(current.trim());
@@ -50,20 +50,35 @@ function parsePgArray(pgArrayString) {
         current = '';
         continue;
       }
-      
+
       current += char;
     }
-    
+
     // Add last element
     if (current.trim()) {
       result.push(current.trim());
     }
-    
+
     return result.length > 0 ? result : null;
   } catch (err) {
     console.error('Error parsing PG array:', pgArrayString, err);
     return null;
   }
+}
+
+// Parse lquery patterns to extract base value for bid request
+// Examples: "{DE.*.*}" -> "DE", "{Android.*}" -> "Android"
+function parseLquery(lqueryString) {
+  const arr = parsePgArray(lqueryString);
+  if (!arr || arr.length === 0) return null;
+
+  // Extract base value from first pattern
+  const pattern = arr[0];
+
+  // Remove wildcard patterns: "DE.*.*" -> "DE", "Android.*" -> "Android"
+  const baseValue = pattern.split('.')[0].replace(/\*/g, '');
+
+  return baseValue || null;
 }
 
 // Convert string boolean to actual boolean
@@ -110,25 +125,45 @@ function showStatus(type, message) {
   }
 }
 
-// Initialize tab switching
+// Initialize tab switching with URL hash support
 function initializeTabs() {
   const tabs = document.querySelectorAll('.tab');
   const contents = document.querySelectorAll('.tab-content');
-  
+
+  function switchTab(targetId) {
+    tabs.forEach(t => t.classList.remove('active'));
+    contents.forEach(c => c.classList.remove('active'));
+
+    const activeTab = document.querySelector(`.tab[data-tab="${targetId}"]`);
+    const targetContent = document.getElementById(targetId);
+
+    if (activeTab && targetContent) {
+      activeTab.classList.add('active');
+      targetContent.classList.add('active');
+    }
+  }
+
+  // Handle click events
   tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
+    tab.addEventListener('click', (e) => {
       const targetId = tab.getAttribute('data-tab');
-      
-      tabs.forEach(t => t.classList.remove('active'));
-      contents.forEach(c => c.classList.remove('active'));
-      
-      tab.classList.add('active');
-      const targetContent = document.getElementById(targetId);
-      if (targetContent) {
-        targetContent.classList.add('active');
-      }
+      switchTab(targetId);
     });
   });
+
+  // Handle hash changes (back/forward navigation)
+  window.addEventListener('hashchange', () => {
+    const hash = window.location.hash.substring(1);
+    if (hash && (hash === 'validator' || hash === 'generator')) {
+      switchTab(hash);
+    }
+  });
+
+  // Handle initial hash on page load
+  const initialHash = window.location.hash.substring(1);
+  if (initialHash && (initialHash === 'validator' || initialHash === 'generator')) {
+    switchTab(initialHash);
+  }
 }
 
 // Copy text to clipboard
