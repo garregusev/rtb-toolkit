@@ -793,13 +793,19 @@ function validateOS(campaign, bidRequest) {
   }
   
   let match = true;
-  
+
   if (allowlist && allowlist.length > 0) {
-    match = match && allowlist.some(pattern => os.toLowerCase().includes(pattern.toLowerCase()));
+    match = match && allowlist.some(pattern =>
+      os.toLowerCase().startsWith(pattern.toLowerCase()) ||
+      pattern.toLowerCase().startsWith(os.toLowerCase())
+    );
   }
-  
+
   if (blocklist && blocklist.length > 0) {
-    match = match && !blocklist.some(pattern => os.toLowerCase().includes(pattern.toLowerCase()));
+    match = match && !blocklist.some(pattern =>
+      os.toLowerCase().startsWith(pattern.toLowerCase()) ||
+      pattern.toLowerCase().startsWith(os.toLowerCase())
+    );
   }
   
   const campaignValueDisplay = allowlist && allowlist.length > 0
@@ -841,13 +847,21 @@ function validateBrowser(campaign, bidRequest) {
   }
   
   let match = true;
-  
+
   if (allowlist && allowlist.length > 0) {
-    match = match && allowlist.some(pattern => ua.toLowerCase().includes(pattern.toLowerCase()));
+    match = match && allowlist.some(pattern =>
+      ua.toLowerCase().startsWith(pattern.toLowerCase()) ||
+      pattern.toLowerCase().startsWith(ua.toLowerCase()) ||
+      ua.toLowerCase().includes(pattern.toLowerCase())
+    );
   }
-  
+
   if (blocklist && blocklist.length > 0) {
-    match = match && !blocklist.some(pattern => ua.toLowerCase().includes(pattern.toLowerCase()));
+    match = match && !blocklist.some(pattern =>
+      ua.toLowerCase().startsWith(pattern.toLowerCase()) ||
+      pattern.toLowerCase().startsWith(ua.toLowerCase()) ||
+      ua.toLowerCase().includes(pattern.toLowerCase())
+    );
   }
   
   const campaignValueDisplay = allowlist && allowlist.length > 0
@@ -889,13 +903,19 @@ function validateDevice(campaign, bidRequest) {
   }
   
   let match = true;
-  
+
   if (allowlist && allowlist.length > 0) {
-    match = match && allowlist.some(pattern => device.toLowerCase().includes(pattern.toLowerCase()));
+    match = match && allowlist.some(pattern =>
+      device.toLowerCase().startsWith(pattern.toLowerCase()) ||
+      pattern.toLowerCase().startsWith(device.toLowerCase())
+    );
   }
-  
+
   if (blocklist && blocklist.length > 0) {
-    match = match && !blocklist.some(pattern => device.toLowerCase().includes(pattern.toLowerCase()));
+    match = match && !blocklist.some(pattern =>
+      device.toLowerCase().startsWith(pattern.toLowerCase()) ||
+      pattern.toLowerCase().startsWith(device.toLowerCase())
+    );
   }
   
   const campaignValueDisplay = allowlist && allowlist.length > 0
