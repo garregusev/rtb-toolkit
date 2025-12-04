@@ -112,9 +112,21 @@ ${JSON.stringify(campaign, null, 2)}
         });
 
         if (response.ok) {
-          data = await response.json();
-          console.log(`Success with model: ${model}`);
-          break; // Success! Exit loop
+          const responseData = await response.json();
+
+          // Check if response has valid structure
+          if (responseData.candidates && responseData.candidates[0] && responseData.candidates[0].content) {
+            data = responseData;
+            console.log(`Success with model: ${model}`);
+            break; // Success! Exit loop
+          } else {
+            // API returned 200 but invalid structure
+            lastError = `${model}: Invalid response structure - ${JSON.stringify(responseData).substring(0, 200)}`;
+            console.warn(lastError);
+            console.log('Full response:', responseData);
+            // Try next model
+            continue;
+          }
         } else {
           const errorData = await response.json();
           lastError = `${model}: ${response.status} - ${errorData.error?.message || 'Unknown error'}`;
