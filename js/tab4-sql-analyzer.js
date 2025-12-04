@@ -141,19 +141,20 @@ ${JSON.stringify(campaign, null, 2)}
   }
 }
 
-function displayAnalysisResults(markdown) {
-  const resultsDiv = document.getElementById('sqlAnalysisResults');
+function displayAnalysisResults(markdown, targetElement) {
+  // Allow passing custom element (for tests) or use default
+  const resultsDiv = targetElement || document.getElementById('sqlAnalysisResults');
 
   // Simple markdown to HTML conversion
   let html = markdown
-    // Headers
+    // Code blocks (must be before inline code)
+    .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+    // Headers (order matters: h3 before h2 before h1)
     .replace(/^### (.*$)/gim, '<h3>$1</h3>')
     .replace(/^## (.*$)/gim, '<h2>$1</h2>')
     .replace(/^# (.*$)/gim, '<h1>$1</h1>')
     // Bold
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    // Code blocks
-    .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
     // Inline code
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     // Lists
@@ -167,8 +168,8 @@ function displayAnalysisResults(markdown) {
   // Wrap lists in ul tags
   html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
 
-  // Wrap in paragraphs
-  html = '<div class="analysis-result"><p>' + html + '</p></div>';
+  // Wrap everything in analysis-result div
+  html = '<div class="analysis-result">' + html + '</div>';
 
   resultsDiv.innerHTML = html;
 }

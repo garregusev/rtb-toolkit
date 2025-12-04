@@ -301,13 +301,10 @@ function runSQLAnalyzerTests() {
   test('Convert markdown headers to HTML', () => {
     const markdown = '## Heading 2\n### Heading 3';
     const tempDiv = document.createElement('div');
-    tempDiv.id = 'sqlAnalysisResults';
-    document.body.appendChild(tempDiv);
 
-    displayAnalysisResults(markdown);
+    displayAnalysisResults(markdown, tempDiv);
     const html = tempDiv.innerHTML;
 
-    document.body.removeChild(tempDiv);
     return html.includes('<h2>Heading 2</h2>') && html.includes('<h3>Heading 3</h3>');
   });
 
@@ -315,13 +312,10 @@ function runSQLAnalyzerTests() {
   test('Convert markdown bold to HTML', () => {
     const markdown = 'This is **bold text** here';
     const tempDiv = document.createElement('div');
-    tempDiv.id = 'sqlAnalysisResults';
-    document.body.appendChild(tempDiv);
 
-    displayAnalysisResults(markdown);
+    displayAnalysisResults(markdown, tempDiv);
     const html = tempDiv.innerHTML;
 
-    document.body.removeChild(tempDiv);
     return html.includes('<strong>bold text</strong>');
   });
 
@@ -329,13 +323,10 @@ function runSQLAnalyzerTests() {
   test('Convert markdown inline code to HTML', () => {
     const markdown = 'Use `SELECT * FROM table` query';
     const tempDiv = document.createElement('div');
-    tempDiv.id = 'sqlAnalysisResults';
-    document.body.appendChild(tempDiv);
 
-    displayAnalysisResults(markdown);
+    displayAnalysisResults(markdown, tempDiv);
     const html = tempDiv.innerHTML;
 
-    document.body.removeChild(tempDiv);
     return html.includes('<code>SELECT * FROM table</code>');
   });
 
@@ -343,13 +334,10 @@ function runSQLAnalyzerTests() {
   test('Convert markdown code blocks to HTML', () => {
     const markdown = '```sql\nSELECT * FROM bid_entities\n```';
     const tempDiv = document.createElement('div');
-    tempDiv.id = 'sqlAnalysisResults';
-    document.body.appendChild(tempDiv);
 
-    displayAnalysisResults(markdown);
+    displayAnalysisResults(markdown, tempDiv);
     const html = tempDiv.innerHTML;
 
-    document.body.removeChild(tempDiv);
     return html.includes('<pre><code>') && html.includes('SELECT * FROM bid_entities');
   });
 
@@ -357,13 +345,10 @@ function runSQLAnalyzerTests() {
   test('Results wrapped in analysis-result div', () => {
     const markdown = 'Test content';
     const tempDiv = document.createElement('div');
-    tempDiv.id = 'sqlAnalysisResults';
-    document.body.appendChild(tempDiv);
 
-    displayAnalysisResults(markdown);
+    displayAnalysisResults(markdown, tempDiv);
     const html = tempDiv.innerHTML;
 
-    document.body.removeChild(tempDiv);
     return html.includes('class="analysis-result"');
   });
 
