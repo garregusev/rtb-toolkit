@@ -2,9 +2,10 @@
 
 // Try multiple models in order of preference
 const GEMINI_MODELS = [
-  'gemini-2.0-flash-exp',      // Newest, experimental
-  'gemini-1.5-flash',           // Stable
-  'gemini-1.5-pro'              // Fallback
+  'gemini-2.5-flash',          // Latest (as requested)
+  'gemini-2.0-flash-exp',      // Experimental
+  'gemini-1.5-flash',          // Stable
+  'gemini-1.5-pro'             // Fallback
 ];
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
