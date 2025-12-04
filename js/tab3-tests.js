@@ -15,6 +15,9 @@ function runAllTests() {
   // Category 3: Generator Logic (7 tests)
   runGeneratorTests();
 
+  // Category 4: SQL Analyzer Logic (5 tests)
+  runSQLAnalyzerTests();
+
   // Display results
   displayTestResults();
 
@@ -284,6 +287,84 @@ function runGeneratorTests() {
     const failed = results.filter(r => r.match === false);
 
     return failed.length === 0;
+  });
+
+  console.log('');
+}
+
+// ========== CATEGORY 4: SQL ANALYZER LOGIC ==========
+
+function runSQLAnalyzerTests() {
+  console.log('--- Category 4: SQL Analyzer Logic ---\n');
+
+  // Test 24: Markdown headers conversion
+  test('Convert markdown headers to HTML', () => {
+    const markdown = '## Heading 2\n### Heading 3';
+    const tempDiv = document.createElement('div');
+    tempDiv.id = 'sqlAnalysisResults';
+    document.body.appendChild(tempDiv);
+
+    displayAnalysisResults(markdown);
+    const html = tempDiv.innerHTML;
+
+    document.body.removeChild(tempDiv);
+    return html.includes('<h2>Heading 2</h2>') && html.includes('<h3>Heading 3</h3>');
+  });
+
+  // Test 25: Markdown bold text conversion
+  test('Convert markdown bold to HTML', () => {
+    const markdown = 'This is **bold text** here';
+    const tempDiv = document.createElement('div');
+    tempDiv.id = 'sqlAnalysisResults';
+    document.body.appendChild(tempDiv);
+
+    displayAnalysisResults(markdown);
+    const html = tempDiv.innerHTML;
+
+    document.body.removeChild(tempDiv);
+    return html.includes('<strong>bold text</strong>');
+  });
+
+  // Test 26: Markdown inline code conversion
+  test('Convert markdown inline code to HTML', () => {
+    const markdown = 'Use `SELECT * FROM table` query';
+    const tempDiv = document.createElement('div');
+    tempDiv.id = 'sqlAnalysisResults';
+    document.body.appendChild(tempDiv);
+
+    displayAnalysisResults(markdown);
+    const html = tempDiv.innerHTML;
+
+    document.body.removeChild(tempDiv);
+    return html.includes('<code>SELECT * FROM table</code>');
+  });
+
+  // Test 27: Markdown code block conversion
+  test('Convert markdown code blocks to HTML', () => {
+    const markdown = '```sql\nSELECT * FROM bid_entities\n```';
+    const tempDiv = document.createElement('div');
+    tempDiv.id = 'sqlAnalysisResults';
+    document.body.appendChild(tempDiv);
+
+    displayAnalysisResults(markdown);
+    const html = tempDiv.innerHTML;
+
+    document.body.removeChild(tempDiv);
+    return html.includes('<pre><code>') && html.includes('SELECT * FROM bid_entities');
+  });
+
+  // Test 28: Results wrapped in analysis-result div
+  test('Results wrapped in analysis-result div', () => {
+    const markdown = 'Test content';
+    const tempDiv = document.createElement('div');
+    tempDiv.id = 'sqlAnalysisResults';
+    document.body.appendChild(tempDiv);
+
+    displayAnalysisResults(markdown);
+    const html = tempDiv.innerHTML;
+
+    document.body.removeChild(tempDiv);
+    return html.includes('class="analysis-result"');
   });
 
   console.log('');
