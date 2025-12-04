@@ -247,8 +247,8 @@ function runGeneratorTests() {
            bidRequest.imp[0].pmp.deals[0].id === 'DEAL-123';
   });
 
-  // Test 22: Bidfloor is 80% of campaign price
-  test('Bidfloor is 80% of campaign price', () => {
+  // Test 22: Bidfloor is 5% of campaign price
+  test('Bidfloor is 5% of campaign price', () => {
     const campaign = {
       media_type: 'DISPLAY',
       width: '300',
@@ -257,7 +257,7 @@ function runGeneratorTests() {
       currency: 'USD'
     };
     const bidRequest = buildBidRequestFromCampaign(campaign);
-    const expectedBidfloor = 2.0; // 2.5 * 0.8
+    const expectedBidfloor = 0.125; // 2.5 * 0.05
     return bidRequest.imp[0].bidfloor === expectedBidfloor;
   });
 
