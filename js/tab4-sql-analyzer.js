@@ -1,13 +1,17 @@
 // Tab 4: SQL Analyzer - Gemini API integration
 
-const GEMINI_API_KEY = 'AIzaSyA4merX6YqqXKuhWeOTE-D8yjpm6yERRhU';
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
 
 async function analyzeSQLMismatch() {
   try {
     // Get inputs
     const campaignJson = document.getElementById('sqlCampaignJson').value.trim();
     const sqlQuery = document.getElementById('sqlQuery').value.trim();
+    const apiKey = document.getElementById('geminiApiKey').value.trim();
+
+    if (!apiKey) {
+      throw new Error('Please enter your Gemini API key. Get one free at https://aistudio.google.com/apikey');
+    }
 
     if (!campaignJson) {
       throw new Error('Please enter campaign data');
@@ -16,6 +20,9 @@ async function analyzeSQLMismatch() {
     if (!sqlQuery) {
       throw new Error('Please enter SQL query');
     }
+
+    // Save API key to localStorage for next time
+    localStorage.setItem('gemini_api_key', apiKey);
 
     // Validate JSON
     let campaign;
@@ -65,10 +72,10 @@ ${JSON.stringify(campaign, null, 2)}
 3. **Explain each mismatch** - why it's failing (wrong value, wrong type, missing field, etc.)
 4. **Suggest fixes** - how to modify the campaign or SQL query to match
 
-**Format your answer in Russian as a clear markdown list with sections.**`;
+**Format your answer in English as a clear markdown list with sections.**`;
 
     // Call Gemini API
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+    const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -146,7 +153,7 @@ function displayAnalysisResults(markdown) {
 }
 
 function clearSQLAnalyzer() {
-  if (confirm('Are you sure you want to clear all inputs?')) {
+  if (confirm('Are you sure you want to clear all inputs? (API key will be kept)')) {
     document.getElementById('sqlCampaignJson').value = '';
     document.getElementById('sqlQuery').value = '';
     document.getElementById('sqlAnalysisResults').innerHTML = '';
