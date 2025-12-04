@@ -1,6 +1,13 @@
 // Tab 4: SQL Analyzer - Gemini API integration
 
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
+// Try multiple models in order of preference
+const GEMINI_MODELS = [
+  'gemini-2.0-flash-exp',      // Newest, experimental
+  'gemini-1.5-flash',           // Stable
+  'gemini-1.5-pro'              // Fallback
+];
+
+const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 async function analyzeSQLMismatch() {
   try {
@@ -74,33 +81,57 @@ ${JSON.stringify(campaign, null, 2)}
 
 **Format your answer in English as a clear markdown list with sections.**`;
 
-    // Call Gemini API
-    const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: prompt
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.2,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 8192,
-        }
-      })
-    });
+    // Try models in order until one works
+    let data;
+    let lastError;
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Gemini API error: ${response.status} - ${JSON.stringify(errorData)}`);
+    for (const model of GEMINI_MODELS) {
+      try {
+        const apiUrl = `${GEMINI_API_BASE}/${model}:generateContent`;
+        console.log(`Trying model: ${model}`);
+
+        const response = await fetch(`${apiUrl}?key=${apiKey}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: prompt
+              }]
+            }],
+            generationConfig: {
+              temperature: 0.2,
+              topK: 40,
+              topP: 0.95,
+              maxOutputTokens: 8192,
+            }
+          })
+        });
+
+        if (response.ok) {
+          data = await response.json();
+          console.log(`Success with model: ${model}`);
+          break; // Success! Exit loop
+        } else {
+          const errorData = await response.json();
+          lastError = `${model}: ${response.status} - ${errorData.error?.message || 'Unknown error'}`;
+          console.warn(lastError);
+          // Try next model
+          continue;
+        }
+      } catch (err) {
+        lastError = `${model}: ${err.message}`;
+        console.warn(lastError);
+        // Try next model
+        continue;
+      }
     }
 
-    const data = await response.json();
+    if (!data) {
+      throw new Error(`All models failed. Last error: ${lastError}`);
+    }
 
     if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
       throw new Error('Invalid response from Gemini API');
