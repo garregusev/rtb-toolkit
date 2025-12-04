@@ -257,14 +257,14 @@ function initializeTabs() {
   // Handle hash changes (back/forward navigation)
   window.addEventListener('hashchange', () => {
     const hash = window.location.hash.substring(1);
-    if (hash && (hash === 'validator' || hash === 'generator')) {
+    if (hash && (hash === 'validator' || hash === 'generator' || hash === 'sql-analyzer')) {
       switchTab(hash);
     }
   });
 
   // Handle initial hash on page load
   const initialHash = window.location.hash.substring(1);
-  if (initialHash && (initialHash === 'validator' || initialHash === 'generator')) {
+  if (initialHash && (initialHash === 'validator' || initialHash === 'generator' || initialHash === 'sql-analyzer')) {
     switchTab(initialHash);
   }
 }
