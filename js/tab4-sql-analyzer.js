@@ -115,7 +115,11 @@ ${JSON.stringify(campaign, null, 2)}
           const responseData = await response.json();
 
           // Check if response has valid structure
-          if (responseData.candidates && responseData.candidates[0] && responseData.candidates[0].content) {
+          if (responseData.candidates &&
+              responseData.candidates[0] &&
+              responseData.candidates[0].content &&
+              responseData.candidates[0].content.parts &&
+              responseData.candidates[0].content.parts[0]) {
             data = responseData;
             console.log(`Success with model: ${model}`);
             break; // Success! Exit loop
@@ -148,6 +152,10 @@ ${JSON.stringify(campaign, null, 2)}
 
     if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
       throw new Error('Invalid response from Gemini API');
+    }
+
+    if (!data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
+      throw new Error('Invalid response structure: missing parts array');
     }
 
     const analysisText = data.candidates[0].content.parts[0].text;
