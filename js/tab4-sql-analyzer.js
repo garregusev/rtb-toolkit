@@ -3,6 +3,62 @@
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 const GEMINI_MODEL = 'gemini-2.5-flash'; // Use only this model as requested
 
+// Load prompt template from external file
+let SQL_ANALYZER_PROMPT_TEMPLATE = '';
+
+// Load prompt on page load
+async function loadSQLAnalyzerPrompt() {
+  try {
+    const response = await fetch('prompts/sql-analyzer.txt');
+    if (response.ok) {
+      SQL_ANALYZER_PROMPT_TEMPLATE = await response.text();
+      console.log('✅ SQL Analyzer prompt loaded');
+    } else {
+      console.warn('⚠️ Failed to load prompt template, using fallback');
+      SQL_ANALYZER_PROMPT_TEMPLATE = `Find SQL mismatches. Be BRIEF. NO explanations, ONLY field/expected/got/fix.
+
+SQL:
+{SQL_QUERY}
+
+Campaign:
+{CAMPAIGN_JSON}
+
+List ONLY failing conditions (MAX 10):
+• Field: [name]
+• Expected: [value]
+• Got: [value]
+• Fix: [action]
+
+Each line MAX 15 words.`;
+    }
+  } catch (err) {
+    console.error('Error loading prompt template:', err);
+    // Use fallback prompt
+    SQL_ANALYZER_PROMPT_TEMPLATE = `Find SQL mismatches. Be BRIEF. NO explanations, ONLY field/expected/got/fix.
+
+SQL:
+{SQL_QUERY}
+
+Campaign:
+{CAMPAIGN_JSON}
+
+List ONLY failing conditions (MAX 10):
+• Field: [name]
+• Expected: [value]
+• Got: [value]
+• Fix: [action]
+
+Each line MAX 15 words.`;
+  }
+}
+
+// Initialize prompt on page load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', loadSQLAnalyzerPrompt);
+} else {
+  loadSQLAnalyzerPrompt();
+}
+
 async function analyzeSQLMismatch() {
   const compareButton = event.target;
   const resultsDiv = document.getElementById('sqlAnalysisResults');
@@ -58,22 +114,11 @@ async function analyzeSQLMismatch() {
       'hi': 'Hindi'
     };
 
-    // Build VERY SHORT prompt for Gemini
-    const prompt = `Find SQL mismatches. Be BRIEF.
-
-SQL:
-${sqlQuery}
-
-Campaign:
-${JSON.stringify(campaign, null, 2)}
-
-List ONLY failing conditions:
-• Field: [name]
-• Expected: [value]
-• Got: [value]
-• Fix: [action]
-
-Answer in ${languageNames[language]}.`;
+    // Build prompt from template
+    const prompt = SQL_ANALYZER_PROMPT_TEMPLATE
+      .replace('{SQL_QUERY}', sqlQuery)
+      .replace('{CAMPAIGN_JSON}', JSON.stringify(campaign, null, 2))
+      + `\n\nAnswer in ${languageNames[language]}.`;
 
     // Call Gemini API
     const apiUrl = `${GEMINI_API_BASE}/${GEMINI_MODEL}:generateContent`;
@@ -94,7 +139,7 @@ Answer in ${languageNames[language]}.`;
           temperature: 0.2,
           topK: 40,
           topP: 0.95,
-          maxOutputTokens: 4096, // Increased to avoid truncation
+          maxOutputTokens: 8192, // Maximum allowed for longer responses
         }
       })
     });
@@ -109,12 +154,6 @@ Answer in ${languageNames[language]}.`;
     const data = await response.json();
     console.log('📦 Received response from Gemini');
 
-    // Check for MAX_TOKENS finish reason
-    if (data.candidates && data.candidates[0] && data.candidates[0].finishReason === 'MAX_TOKENS') {
-      console.warn('⚠️ Response was truncated due to MAX_TOKENS');
-      throw new Error('Response was too long and got truncated. Please try with a shorter SQL query or less campaign data.');
-    }
-
     // Validate response structure
     if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
       console.error('❌ Invalid response structure:', data);
@@ -127,11 +166,18 @@ Answer in ${languageNames[language]}.`;
     }
 
     const analysisText = data.candidates[0].content.parts[0].text;
+
+    // Check for MAX_TOKENS finish reason - show warning but still display results
+    const wasTruncated = data.candidates[0].finishReason === 'MAX_TOKENS';
+    if (wasTruncated) {
+      console.warn('⚠️ Response was truncated due to MAX_TOKENS');
+    }
+
     console.log('✅ Analysis completed successfully');
 
     // Display results with markdown formatting
-    displayAnalysisResults(analysisText);
-    showStatus('success', '✓ Analysis complete!');
+    displayAnalysisResults(analysisText, null, wasTruncated);
+    showStatus('success', '✓ Analysis complete!' + (wasTruncated ? ' (response was truncated)' : ''));
 
   } catch (err) {
     console.error('SQL Analysis error:', err);
@@ -145,7 +191,7 @@ Answer in ${languageNames[language]}.`;
   }
 }
 
-function displayAnalysisResults(markdown, targetElement) {
+function displayAnalysisResults(markdown, targetElement, wasTruncated = false) {
   // Allow passing custom element (for tests) or use default
   const resultsDiv = targetElement || document.getElementById('sqlAnalysisResults');
 
@@ -172,10 +218,16 @@ function displayAnalysisResults(markdown, targetElement) {
   // Wrap lists in ul tags
   html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
 
-  // Wrap everything in analysis-result div
-  html = '<div class="analysis-result">' + html + '</div>';
+  // Add truncation warning if needed
+  let finalHtml = '';
+  if (wasTruncated) {
+    finalHtml += '<div class="status warning" style="background-color: #fff3cd; color: #856404; margin-bottom: 15px;">⚠️ <strong>Note:</strong> Response was truncated due to length. Showing partial analysis.</div>';
+  }
 
-  resultsDiv.innerHTML = html;
+  // Wrap everything in analysis-result div
+  finalHtml += '<div class="analysis-result">' + html + '</div>';
+
+  resultsDiv.innerHTML = finalHtml;
 }
 
 function clearSQLAnalyzer() {
