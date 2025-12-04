@@ -15,7 +15,13 @@ async function loadSQLAnalyzerPrompt() {
       console.log('✅ SQL Analyzer prompt loaded');
     } else {
       console.warn('⚠️ Failed to load prompt template, using fallback');
-      SQL_ANALYZER_PROMPT_TEMPLATE = `Compare SQL query to campaign. List mismatches.
+      SQL_ANALYZER_PROMPT_TEMPLATE = `Compare SQL query to campaign JSON. List mismatches.
+
+IMPORTANT PostgreSQL Notes:
+- Array fields: "" (empty string) = {} (empty array) = NULL for checking
+- SQL uses: field IS NULL OR field = '{}' OR field = ''
+- Don't report mismatch if SQL expects NULL and campaign has ""
+- lquery arrays: {pattern1,pattern2} format
 
 SQL:
 {SQL_QUERY}
@@ -23,15 +29,21 @@ SQL:
 Campaign:
 {CAMPAIGN_JSON}
 
-Format:
+Format (ONLY actual mismatches):
 • Field: [name] | Expected: [value] | Got: [value] | Fix: [action]
 
-NO explanations. ONLY list.`;
+NO explanations. Skip fields where "" equals NULL/{}.`;
     }
   } catch (err) {
     console.error('Error loading prompt template:', err);
     // Use fallback prompt
-    SQL_ANALYZER_PROMPT_TEMPLATE = `Compare SQL query to campaign. List mismatches.
+    SQL_ANALYZER_PROMPT_TEMPLATE = `Compare SQL query to campaign JSON. List mismatches.
+
+IMPORTANT PostgreSQL Notes:
+- Array fields: "" (empty string) = {} (empty array) = NULL for checking
+- SQL uses: field IS NULL OR field = '{}' OR field = ''
+- Don't report mismatch if SQL expects NULL and campaign has ""
+- lquery arrays: {pattern1,pattern2} format
 
 SQL:
 {SQL_QUERY}
@@ -39,10 +51,10 @@ SQL:
 Campaign:
 {CAMPAIGN_JSON}
 
-Format:
+Format (ONLY actual mismatches):
 • Field: [name] | Expected: [value] | Got: [value] | Fix: [action]
 
-NO explanations. ONLY list.`;
+NO explanations. Skip fields where "" equals NULL/{}.`;
   }
 }
 
