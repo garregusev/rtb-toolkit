@@ -15,7 +15,7 @@ async function loadSQLAnalyzerPrompt() {
       console.log('✅ SQL Analyzer prompt loaded');
     } else {
       console.warn('⚠️ Failed to load prompt template, using fallback');
-      SQL_ANALYZER_PROMPT_TEMPLATE = `Find SQL mismatches. Be BRIEF. NO explanations, ONLY field/expected/got/fix.
+      SQL_ANALYZER_PROMPT_TEMPLATE = `Compare SQL query to campaign. List mismatches.
 
 SQL:
 {SQL_QUERY}
@@ -23,18 +23,15 @@ SQL:
 Campaign:
 {CAMPAIGN_JSON}
 
-List ONLY failing conditions (MAX 10):
-• Field: [name]
-• Expected: [value]
-• Got: [value]
-• Fix: [action]
+Format:
+• Field: [name] | Expected: [value] | Got: [value] | Fix: [action]
 
-Each line MAX 15 words.`;
+NO explanations. ONLY list.`;
     }
   } catch (err) {
     console.error('Error loading prompt template:', err);
     // Use fallback prompt
-    SQL_ANALYZER_PROMPT_TEMPLATE = `Find SQL mismatches. Be BRIEF. NO explanations, ONLY field/expected/got/fix.
+    SQL_ANALYZER_PROMPT_TEMPLATE = `Compare SQL query to campaign. List mismatches.
 
 SQL:
 {SQL_QUERY}
@@ -42,13 +39,10 @@ SQL:
 Campaign:
 {CAMPAIGN_JSON}
 
-List ONLY failing conditions (MAX 10):
-• Field: [name]
-• Expected: [value]
-• Got: [value]
-• Fix: [action]
+Format:
+• Field: [name] | Expected: [value] | Got: [value] | Fix: [action]
 
-Each line MAX 15 words.`;
+NO explanations. ONLY list.`;
   }
 }
 
@@ -136,10 +130,10 @@ async function analyzeSQLMismatch() {
           }]
         }],
         generationConfig: {
-          temperature: 0.2,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 8192, // Maximum allowed for longer responses
+          temperature: 0.1, // Lower temperature for more focused output
+          topK: 20,
+          topP: 0.9,
+          maxOutputTokens: 16384, // Increased to handle thinking tokens + output
         }
       })
     });

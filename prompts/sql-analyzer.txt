@@ -1,4 +1,4 @@
-Find SQL mismatches. Be BRIEF. NO explanations, ONLY field/expected/got/fix.
+Compare SQL query to campaign. List mismatches.
 
 SQL:
 {SQL_QUERY}
@@ -6,10 +6,7 @@ SQL:
 Campaign:
 {CAMPAIGN_JSON}
 
-List ONLY failing conditions (MAX 10):
-• Field: [name]
-• Expected: [value]
-• Got: [value]
-• Fix: [action]
+Format:
+• Field: [name] | Expected: [value] | Got: [value] | Fix: [action]
 
-Each line MAX 15 words.
+NO explanations. ONLY list.
