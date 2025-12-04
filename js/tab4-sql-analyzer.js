@@ -53,31 +53,27 @@ async function analyzeSQLMismatch() {
       'ru': 'Russian',
       'de': 'German',
       'es': 'Spanish',
-      'fr': 'French'
+      'fr': 'French',
+      'tr': 'Turkish',
+      'hi': 'Hindi'
     };
 
-    // Build SHORT prompt for Gemini
-    const prompt = `Analyze why this PostgreSQL query doesn't match this campaign. Be CONCISE.
+    // Build VERY SHORT prompt for Gemini
+    const prompt = `Find SQL mismatches. Be BRIEF.
 
-SQL Query:
-\`\`\`sql
+SQL:
 ${sqlQuery}
-\`\`\`
 
 Campaign:
-\`\`\`json
 ${JSON.stringify(campaign, null, 2)}
-\`\`\`
 
-Find which SQL conditions fail and why. List only:
-1. Field name
-2. SQL expects: X
-3. Campaign has: Y
-4. Fix: change X to Y
+List ONLY failing conditions:
+• Field: [name]
+• Expected: [value]
+• Got: [value]
+• Fix: [action]
 
-Note: PostgreSQL arrays use {val1,val2}, lquery patterns like {DE.*.*}
-
-Answer in ${languageNames[language]}. Keep it SHORT.`;
+Answer in ${languageNames[language]}.`;
 
     // Call Gemini API
     const apiUrl = `${GEMINI_API_BASE}/${GEMINI_MODEL}:generateContent`;
@@ -98,7 +94,7 @@ Answer in ${languageNames[language]}. Keep it SHORT.`;
           temperature: 0.2,
           topK: 40,
           topP: 0.95,
-          maxOutputTokens: 2048, // Reduced for concise responses
+          maxOutputTokens: 4096, // Increased to avoid truncation
         }
       })
     });
