@@ -4,11 +4,16 @@ const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models
 const GEMINI_MODEL = 'gemini-2.5-flash'; // Use only this model as requested
 
 async function analyzeSQLMismatch() {
+  const compareButton = event.target;
+  const resultsDiv = document.getElementById('sqlAnalysisResults');
+  const originalButtonText = compareButton.innerHTML;
+
   try {
     // Get inputs
     const campaignJson = document.getElementById('sqlCampaignJson').value.trim();
     const sqlQuery = document.getElementById('sqlQuery').value.trim();
     const apiKey = document.getElementById('geminiApiKey').value.trim();
+    const language = document.getElementById('responseLanguage').value;
 
     if (!apiKey) {
       throw new Error('Please enter your Gemini API key. Get one free at https://aistudio.google.com/apikey');
@@ -36,44 +41,43 @@ async function analyzeSQLMismatch() {
       throw new Error('Invalid campaign JSON: ' + err.message);
     }
 
-    // Show loading state
-    const resultsDiv = document.getElementById('sqlAnalysisResults');
-    resultsDiv.innerHTML = '<div class="status info">🔬 Analyzing with Gemini AI...</div>';
+    // Disable button and show loading state
+    compareButton.disabled = true;
+    compareButton.innerHTML = '⏳ Analyzing...';
+    resultsDiv.innerHTML = '<div class="status info">🔬 Analyzing with Gemini AI... Please wait, this may take 5-15 seconds.</div>';
     showStatus('info', 'Analyzing...');
 
-    // Build prompt for Gemini
-    const prompt = `You are an expert in PostgreSQL and Real-Time Bidding (RTB) systems. You are analyzing why a SQL query doesn't match a specific bid entity.
+    // Language names for prompt
+    const languageNames = {
+      'en': 'English',
+      'ru': 'Russian',
+      'de': 'German',
+      'es': 'Spanish',
+      'fr': 'French'
+    };
 
-**Context:**
-- The bidder uses a PostgreSQL database with a "bid_entities" table containing campaign targeting rules
-- When a bid request arrives, the bidder runs a SQL query with WHERE conditions to find matching campaigns
-- The SQL query below is failing to find the campaign (bid entity) provided
+    // Build SHORT prompt for Gemini
+    const prompt = `Analyze why this PostgreSQL query doesn't match this campaign. Be CONCISE.
 
-**Your task:**
-Analyze why the SQL query doesn't match the bid entity. Find ALL mismatches between SQL conditions and campaign field values.
-
-**SQL Query (conditions the bidder is checking):**
+SQL Query:
 \`\`\`sql
 ${sqlQuery}
 \`\`\`
 
-**Bid Entity (campaign that should match but doesn't):**
+Campaign:
 \`\`\`json
 ${JSON.stringify(campaign, null, 2)}
 \`\`\`
 
-**Important PostgreSQL type notes:**
-- Arrays: PostgreSQL format is {value1,value2}, empty is {}, null is ""
-- lquery: Pattern matching type (e.g., {DE.*.*} matches Germany, {Android.*} matches Android OS)
-- Operators: @> (contains), && (overlaps), IS NULL, IS NOT NULL
+Find which SQL conditions fail and why. List only:
+1. Field name
+2. SQL expects: X
+3. Campaign has: Y
+4. Fix: change X to Y
 
-**Please provide:**
-1. **List all mismatches** - which SQL conditions are failing and why
-2. **Specific values** - show what the SQL expects vs what the campaign has
-3. **Explain each mismatch** - why it's failing (wrong value, wrong type, missing field, etc.)
-4. **Suggest fixes** - how to modify the campaign or SQL query to match
+Note: PostgreSQL arrays use {val1,val2}, lquery patterns like {DE.*.*}
 
-**Format your answer in English as a clear markdown list with sections.**`;
+Answer in ${languageNames[language]}. Keep it SHORT.`;
 
     // Call Gemini API
     const apiUrl = `${GEMINI_API_BASE}/${GEMINI_MODEL}:generateContent`;
@@ -94,7 +98,7 @@ ${JSON.stringify(campaign, null, 2)}
           temperature: 0.2,
           topK: 40,
           topP: 0.95,
-          maxOutputTokens: 16384, // Increased to allow longer responses
+          maxOutputTokens: 2048, // Reduced for concise responses
         }
       })
     });
@@ -136,8 +140,12 @@ ${JSON.stringify(campaign, null, 2)}
   } catch (err) {
     console.error('SQL Analysis error:', err);
     showStatus('error', 'Error: ' + err.message);
-    document.getElementById('sqlAnalysisResults').innerHTML =
+    resultsDiv.innerHTML =
       `<div class="status error">Error: ${err.message}</div>`;
+  } finally {
+    // Re-enable button
+    compareButton.disabled = false;
+    compareButton.innerHTML = originalButtonText;
   }
 }
 

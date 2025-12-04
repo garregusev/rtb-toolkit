@@ -62,6 +62,17 @@
     <!-- Tab 3: SQL Analyzer -->
     <div id="sql-analyzer" class="tab-content">
       <div class="section">
+        <label for="responseLanguage">Response Language:</label>
+        <select id="responseLanguage" style="width: 100%; padding: 10px; border: 1px solid #dee2e6; border-radius: 4px; font-size: 14px;">
+          <option value="en">English</option>
+          <option value="ru">Русский</option>
+          <option value="de">Deutsch</option>
+          <option value="es">Español</option>
+          <option value="fr">Français</option>
+        </select>
+      </div>
+
+      <div class="section">
         <label for="geminiApiKey">
           Gemini API Key:
           <a href="https://aistudio.google.com/apikey" target="_blank" style="font-size: 12px; color: #667eea;">Get free key →</a>
@@ -105,11 +116,21 @@
     window.addEventListener('DOMContentLoaded', () => {
       initializeTabs();
 
-      // Load saved Gemini API key from localStorage
+      // Load saved Gemini API key and language from localStorage
       const savedApiKey = localStorage.getItem('gemini_api_key');
       if (savedApiKey) {
         document.getElementById('geminiApiKey').value = savedApiKey;
       }
+
+      const savedLanguage = localStorage.getItem('response_language');
+      if (savedLanguage) {
+        document.getElementById('responseLanguage').value = savedLanguage;
+      }
+
+      // Save language when changed
+      document.getElementById('responseLanguage').addEventListener('change', (e) => {
+        localStorage.setItem('response_language', e.target.value);
+      });
 
       // Run tests in console
       setTimeout(() => {
