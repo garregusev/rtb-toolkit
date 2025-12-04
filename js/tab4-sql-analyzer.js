@@ -1,14 +1,7 @@
 // Tab 4: SQL Analyzer - Gemini API integration
 
-// Try multiple models in order of preference
-const GEMINI_MODELS = [
-  'gemini-2.5-flash',          // Latest (as requested)
-  'gemini-2.0-flash-exp',      // Experimental
-  'gemini-1.5-flash',          // Stable
-  'gemini-1.5-pro'             // Fallback
-];
-
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
+const GEMINI_MODEL = 'gemini-2.5-flash'; // Use only this model as requested
 
 async function analyzeSQLMismatch() {
   try {
@@ -82,83 +75,59 @@ ${JSON.stringify(campaign, null, 2)}
 
 **Format your answer in English as a clear markdown list with sections.**`;
 
-    // Try models in order until one works
-    let data;
-    let lastError;
+    // Call Gemini API
+    const apiUrl = `${GEMINI_API_BASE}/${GEMINI_MODEL}:generateContent`;
+    console.log(`📡 Calling Gemini API (${GEMINI_MODEL})...`);
 
-    for (const model of GEMINI_MODELS) {
-      try {
-        const apiUrl = `${GEMINI_API_BASE}/${model}:generateContent`;
-        console.log(`Trying model: ${model}`);
-
-        const response = await fetch(`${apiUrl}?key=${apiKey}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: prompt
-              }]
-            }],
-            generationConfig: {
-              temperature: 0.2,
-              topK: 40,
-              topP: 0.95,
-              maxOutputTokens: 8192,
-            }
-          })
-        });
-
-        if (response.ok) {
-          const responseData = await response.json();
-
-          // Check if response has valid structure
-          if (responseData.candidates &&
-              responseData.candidates[0] &&
-              responseData.candidates[0].content &&
-              responseData.candidates[0].content.parts &&
-              responseData.candidates[0].content.parts[0]) {
-            data = responseData;
-            console.log(`Success with model: ${model}`);
-            break; // Success! Exit loop
-          } else {
-            // API returned 200 but invalid structure
-            lastError = `${model}: Invalid response structure - ${JSON.stringify(responseData).substring(0, 200)}`;
-            console.warn(lastError);
-            console.log('Full response:', responseData);
-            // Try next model
-            continue;
-          }
-        } else {
-          const errorData = await response.json();
-          lastError = `${model}: ${response.status} - ${errorData.error?.message || 'Unknown error'}`;
-          console.warn(lastError);
-          // Try next model
-          continue;
+    const response = await fetch(`${apiUrl}?key=${apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.2,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 16384, // Increased to allow longer responses
         }
-      } catch (err) {
-        lastError = `${model}: ${err.message}`;
-        console.warn(lastError);
-        // Try next model
-        continue;
-      }
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      const errorMsg = errorData.error?.message || 'Unknown error';
+      console.error('❌ Gemini API error:', response.status, errorMsg);
+      throw new Error(`Gemini API error (${response.status}): ${errorMsg}`);
     }
 
-    if (!data) {
-      throw new Error(`All models failed. Last error: ${lastError}`);
+    const data = await response.json();
+    console.log('📦 Received response from Gemini');
+
+    // Check for MAX_TOKENS finish reason
+    if (data.candidates && data.candidates[0] && data.candidates[0].finishReason === 'MAX_TOKENS') {
+      console.warn('⚠️ Response was truncated due to MAX_TOKENS');
+      throw new Error('Response was too long and got truncated. Please try with a shorter SQL query or less campaign data.');
     }
 
+    // Validate response structure
     if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-      throw new Error('Invalid response from Gemini API');
+      console.error('❌ Invalid response structure:', data);
+      throw new Error('Invalid response from Gemini API - missing candidates or content');
     }
 
     if (!data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
-      throw new Error('Invalid response structure: missing parts array');
+      console.error('❌ Invalid response structure - missing parts:', data);
+      throw new Error('Invalid response from Gemini API - missing parts array');
     }
 
     const analysisText = data.candidates[0].content.parts[0].text;
+    console.log('✅ Analysis completed successfully');
 
     // Display results with markdown formatting
     displayAnalysisResults(analysisText);
