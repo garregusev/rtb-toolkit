@@ -12,78 +12,91 @@
       <h1>🎯 RTB Bidding Toolkit</h1>
       <p>Validate bid requests against campaigns & generate OpenRTB test requests</p>
     </div>
-    
+
     <div class="tabs">
-      <button class="tab active" data-tab="validator">📊 Bid Request Validator</button>
-      <button class="tab" data-tab="generator">🔄 Bid Request Generator</button>
-      <button class="tab" data-tab="tests">🧪 Auto Tests</button>
+      <a href="#generator" class="tab active" data-tab="generator">🔄 Bid Request Generator</a>
+      <a href="#sql-analyzer" class="tab" data-tab="sql-analyzer">🔬 SQL Analyzer</a>
+      <a href="#validator" class="tab" data-tab="validator">📊 Bid Request Validator</a>
     </div>
-    
-    <!-- Tab 1: Validator -->
-    <div id="validator" class="tab-content active">
-      <div class="section">
-        <label for="campaignJson">Campaign Data (from bid_entities):</label>
-        <textarea id="campaignJson" rows="8" placeholder='Paste campaign JSON here...'></textarea>
-      </div>
-      
-      <div class="section">
-        <label for="bidRequestJson">Bid Request JSON (OpenRTB 2.6):</label>
-        <textarea id="bidRequestJson" rows="10" placeholder='Paste bid request JSON here...'></textarea>
-      </div>
-      
-      <div class="button-group">
-        <button class="btn-primary" onclick="validateBidRequest()">🔍 Validate</button>
-        <button class="btn-success" onclick="loadValidatorSample()">📝 Load Sample</button>
-      </div>
-      
-      <div id="validationResults" class="output-section"></div>
-    </div>
-    
-    <!-- Tab 2: Generator -->
-    <div id="generator" class="tab-content">
+
+    <!-- Tab 1: Generator -->
+    <div id="generator" class="tab-content active">
       <div class="section">
         <label for="generatorCampaignJson">Campaign Data (from bid_entities):</label>
-        <textarea id="generatorCampaignJson" rows="10" placeholder='Paste campaign JSON here...'></textarea>
+        <textarea id="generatorCampaignJson" rows="5" placeholder='Paste campaign JSON here...'></textarea>
       </div>
-      
+
       <div class="button-group">
         <button class="btn-primary" onclick="generateBidRequest()">🔄 Generate Bid Request</button>
         <button class="btn-secondary" onclick="copyGeneratedBidRequest()">📋 Copy</button>
         <button class="btn-success" onclick="loadGeneratorSample()">📝 Load Sample</button>
+        <button class="btn-secondary" onclick="clearGeneratorInputs()">🗑️ Clear</button>
       </div>
-      
+
       <div class="output-section">
         <div class="output-title">Generated Bid Request:</div>
         <pre id="generatedBidRequest">-- Click "Generate Bid Request"</pre>
       </div>
     </div>
-    
-    <!-- Tab 3: Tests -->
-    <div id="tests" class="tab-content">
+
+    <!-- Tab 2: SQL Analyzer -->
+    <div id="sql-analyzer" class="tab-content">
       <div class="section">
-        <h3>🧪 Automated Tests</h3>
-        <p style="color: #6c757d; margin-bottom: 16px;">
-          Tests validate toolkit functionality on page load.
-        </p>
-        <button class="btn-primary" onclick="runAllTests()">▶️ Run Tests</button>
-        <div id="testResults" class="test-results"></div>
+        <label for="sqlCampaignJson">Campaign Data (from bid_entities):</label>
+        <textarea id="sqlCampaignJson" rows="5" placeholder='Paste campaign JSON here...'></textarea>
       </div>
+
+      <div class="section">
+        <label for="sqlQuery">Filtering SQL Query:</label>
+        <textarea id="sqlQuery" rows="6" placeholder='Paste SQL query here (e.g., SELECT * FROM bid_entities WHERE ...)'></textarea>
+      </div>
+
+      <div class="button-group">
+        <button class="btn-primary" onclick="analyzeSQLMismatch()">🔬 Compare</button>
+        <button class="btn-success" onclick="loadSQLAnalyzerSample()">📝 Load Sample</button>
+        <button class="btn-secondary" onclick="clearSQLAnalyzer()">🗑️ Clear</button>
+      </div>
+
+      <div id="sqlAnalysisResults" class="output-section"></div>
+    </div>
+
+    <!-- Tab 3: Validator -->
+    <div id="validator" class="tab-content">
+      <div class="section">
+        <label for="campaignJson">Campaign Data (from bid_entities):</label>
+        <textarea id="campaignJson" rows="5" placeholder='Paste campaign JSON here...'></textarea>
+      </div>
+
+      <div class="section">
+        <label for="bidRequestJson">Bid Request JSON (OpenRTB 2.6):</label>
+        <textarea id="bidRequestJson" rows="6" placeholder='Paste bid request JSON here...'></textarea>
+      </div>
+
+      <div class="button-group">
+        <button class="btn-primary" onclick="validateBidRequest()">🔍 Validate</button>
+        <button class="btn-secondary" onclick="clearValidatorInputs()">🗑️ Clear</button>
+      </div>
+
+      <div id="validationResults" class="output-section"></div>
     </div>
   </div>
 
   <!-- Scripts loaded in order -->
   <script src="js/core.js"></script>
-  <script src="js/tab3-tests.js"></script>
   <script src="js/tab1-validator.js"></script>
   <script src="js/tab2-generator.js"></script>
-  
+  <script src="js/tab4-sql-analyzer.js"></script>
+  <script src="js/tab3-tests.js"></script>
+
   <script>
-    // Initialize on page load
     window.addEventListener('DOMContentLoaded', () => {
       initializeTabs();
-      loadValidatorSample();
-      // Run tests after short delay to let other scripts load
-      setTimeout(runAllTests, 300);
+
+      // Run tests in console
+      setTimeout(() => {
+        console.log('%c🧪 Running automated tests...', 'color: #6366f1; font-weight: bold; font-size: 14px;');
+        runAllTests();
+      }, 300);
     });
   </script>
 </body>

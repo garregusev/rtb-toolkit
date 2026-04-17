@@ -56,6 +56,7 @@ function performValidation(campaign, bidRequest) {
   const results = [];
   
   // Always add all validations - they return objects even if no campaign value
+  results.push(validateTestFlag(campaign, bidRequest));
   results.push(validateMediaType(campaign, bidRequest));
   results.push(validateWidth(campaign, bidRequest));
   results.push(validateHeight(campaign, bidRequest));
@@ -96,6 +97,30 @@ function performValidation(campaign, bidRequest) {
 }
 
 // Individual validation functions
+
+function validateTestFlag(campaign, bidRequest) {
+  const campaignTestFlag = parseBoolean(campaign.test_flag);
+  const bidRequestTest = bidRequest.test;
+
+  if (campaignTestFlag === null) {
+    return {
+      field: 'test_flag',
+      campaignValue: 'not set',
+      bidRequestValue: bidRequestTest !== undefined ? bidRequestTest : 'not specified',
+      match: null
+    };
+  }
+
+  const expectedTest = campaignTestFlag ? 1 : 0;
+  const match = bidRequestTest === expectedTest;
+
+  return {
+    field: 'test_flag',
+    campaignValue: campaignTestFlag,
+    bidRequestValue: bidRequestTest !== undefined ? bidRequestTest : 'not specified',
+    match: bidRequestTest !== undefined ? match : null
+  };
+}
 
 function validateMediaType(campaign, bidRequest) {
   const campaignMediaType = campaign.media_type;
@@ -441,14 +466,20 @@ function validatePostalCode(campaign, bidRequest) {
     };
   }
   
+  // Strip country prefix if present: "CZ.390 03" -> "390 03"
+  const stripPostalPrefix = (code) => {
+    const m = code.match(/^[A-Z]{2}\.(.+)$/);
+    return m ? m[1] : code;
+  };
+
   let match = true;
-  
+
   if (allowlist && allowlist.length > 0) {
-    match = match && allowlist.includes(postalCode);
+    match = match && allowlist.map(stripPostalPrefix).includes(postalCode);
   }
-  
+
   if (blocklist && blocklist.length > 0) {
-    match = match && !blocklist.includes(postalCode);
+    match = match && !blocklist.map(stripPostalPrefix).includes(postalCode);
   }
   
   const campaignValueDisplay = allowlist && allowlist.length > 0
@@ -768,13 +799,19 @@ function validateOS(campaign, bidRequest) {
   }
   
   let match = true;
-  
+
   if (allowlist && allowlist.length > 0) {
-    match = match && allowlist.some(pattern => os.toLowerCase().includes(pattern.toLowerCase()));
+    match = match && allowlist.some(pattern =>
+      os.toLowerCase().startsWith(pattern.toLowerCase()) ||
+      pattern.toLowerCase().startsWith(os.toLowerCase())
+    );
   }
-  
+
   if (blocklist && blocklist.length > 0) {
-    match = match && !blocklist.some(pattern => os.toLowerCase().includes(pattern.toLowerCase()));
+    match = match && !blocklist.some(pattern =>
+      os.toLowerCase().startsWith(pattern.toLowerCase()) ||
+      pattern.toLowerCase().startsWith(os.toLowerCase())
+    );
   }
   
   const campaignValueDisplay = allowlist && allowlist.length > 0
@@ -816,13 +853,21 @@ function validateBrowser(campaign, bidRequest) {
   }
   
   let match = true;
-  
+
   if (allowlist && allowlist.length > 0) {
-    match = match && allowlist.some(pattern => ua.toLowerCase().includes(pattern.toLowerCase()));
+    match = match && allowlist.some(pattern =>
+      ua.toLowerCase().startsWith(pattern.toLowerCase()) ||
+      pattern.toLowerCase().startsWith(ua.toLowerCase()) ||
+      ua.toLowerCase().includes(pattern.toLowerCase())
+    );
   }
-  
+
   if (blocklist && blocklist.length > 0) {
-    match = match && !blocklist.some(pattern => ua.toLowerCase().includes(pattern.toLowerCase()));
+    match = match && !blocklist.some(pattern =>
+      ua.toLowerCase().startsWith(pattern.toLowerCase()) ||
+      pattern.toLowerCase().startsWith(ua.toLowerCase()) ||
+      ua.toLowerCase().includes(pattern.toLowerCase())
+    );
   }
   
   const campaignValueDisplay = allowlist && allowlist.length > 0
@@ -864,13 +909,19 @@ function validateDevice(campaign, bidRequest) {
   }
   
   let match = true;
-  
+
   if (allowlist && allowlist.length > 0) {
-    match = match && allowlist.some(pattern => device.toLowerCase().includes(pattern.toLowerCase()));
+    match = match && allowlist.some(pattern =>
+      device.toLowerCase().startsWith(pattern.toLowerCase()) ||
+      pattern.toLowerCase().startsWith(device.toLowerCase())
+    );
   }
-  
+
   if (blocklist && blocklist.length > 0) {
-    match = match && !blocklist.some(pattern => device.toLowerCase().includes(pattern.toLowerCase()));
+    match = match && !blocklist.some(pattern =>
+      device.toLowerCase().startsWith(pattern.toLowerCase()) ||
+      pattern.toLowerCase().startsWith(device.toLowerCase())
+    );
   }
   
   const campaignValueDisplay = allowlist && allowlist.length > 0
@@ -888,18 +939,20 @@ function validateDevice(campaign, bidRequest) {
 function validateDeviceType(campaign, bidRequest) {
   const allowlist = parsePgArray(campaign.device_type_allowlist);
   const blocklist = parsePgArray(campaign.device_type_blocklist);
-  
+
   const deviceType = getNestedValue(bidRequest, 'device.devicetype');
-  
+
   if (!allowlist && !blocklist) {
+    const deviceTypeName = deviceType !== undefined ? getDeviceTypeName(deviceType) : 'not specified';
+    const displayValue = deviceType !== undefined ? `${deviceType} (${deviceTypeName})` : 'not specified';
     return {
       field: 'device_type',
       campaignValue: 'not set (any allowed)',
-      bidRequestValue: deviceType !== undefined ? deviceType : 'not specified',
+      bidRequestValue: displayValue,
       match: null
     };
   }
-  
+
   if (deviceType === undefined || deviceType === null) {
     return {
       field: 'device_type',
@@ -910,25 +963,38 @@ function validateDeviceType(campaign, bidRequest) {
       match: null
     };
   }
-  
+
+  // Convert device type code to name for comparison
+  const deviceTypeName = getDeviceTypeName(deviceType);
+
   let match = true;
-  
+
   if (allowlist && allowlist.length > 0) {
-    match = match && allowlist.includes(deviceType.toString());
+    // Check if allowlist contains either the numeric code or the name
+    match = match && (
+      allowlist.includes(deviceType.toString()) ||
+      allowlist.includes(deviceTypeName) ||
+      allowlist.some(item => convertDeviceType(item) === deviceType)
+    );
   }
-  
+
   if (blocklist && blocklist.length > 0) {
-    match = match && !blocklist.includes(deviceType.toString());
+    // Check if blocklist contains either the numeric code or the name
+    match = match && !(
+      blocklist.includes(deviceType.toString()) ||
+      blocklist.includes(deviceTypeName) ||
+      blocklist.some(item => convertDeviceType(item) === deviceType)
+    );
   }
-  
+
   const campaignValueDisplay = allowlist && allowlist.length > 0
     ? `allow: ${formatArrayForDisplay(allowlist)}`
     : `block: ${formatArrayForDisplay(blocklist)}`;
-  
+
   return {
     field: 'device_type',
     campaignValue: campaignValueDisplay,
-    bidRequestValue: deviceType,
+    bidRequestValue: `${deviceType} (${deviceTypeName})`,
     match: match
   };
 }
@@ -936,18 +1002,20 @@ function validateDeviceType(campaign, bidRequest) {
 function validateConnectionType(campaign, bidRequest) {
   const allowlist = parsePgArray(campaign.connection_type_allowlist);
   const blocklist = parsePgArray(campaign.connection_type_blocklist);
-  
+
   const connectionType = getNestedValue(bidRequest, 'device.connectiontype');
-  
+
   if (!allowlist && !blocklist) {
+    const connectionTypeName = connectionType !== undefined ? getConnectionTypeName(connectionType) : 'not specified';
+    const displayValue = connectionType !== undefined ? `${connectionType} (${connectionTypeName})` : 'not specified';
     return {
       field: 'connection_type',
       campaignValue: 'not set (any allowed)',
-      bidRequestValue: connectionType !== undefined ? connectionType : 'not specified',
+      bidRequestValue: displayValue,
       match: null
     };
   }
-  
+
   if (connectionType === undefined || connectionType === null) {
     return {
       field: 'connection_type',
@@ -958,25 +1026,33 @@ function validateConnectionType(campaign, bidRequest) {
       match: null
     };
   }
-  
+
+  const connectionTypeName = getConnectionTypeName(connectionType);
+
   let match = true;
-  
+
   if (allowlist && allowlist.length > 0) {
-    match = match && allowlist.includes(connectionType.toString());
+    match = match && (
+      allowlist.includes(connectionType.toString()) ||
+      allowlist.includes(connectionTypeName)
+    );
   }
-  
+
   if (blocklist && blocklist.length > 0) {
-    match = match && !blocklist.includes(connectionType.toString());
+    match = match && !(
+      blocklist.includes(connectionType.toString()) ||
+      blocklist.includes(connectionTypeName)
+    );
   }
-  
+
   const campaignValueDisplay = allowlist && allowlist.length > 0
     ? `allow: ${formatArrayForDisplay(allowlist)}`
     : `block: ${formatArrayForDisplay(blocklist)}`;
-  
+
   return {
     field: 'connection_type',
     campaignValue: campaignValueDisplay,
-    bidRequestValue: connectionType,
+    bidRequestValue: `${connectionType} (${connectionTypeName})`,
     match: match
   };
 }
@@ -1271,22 +1347,23 @@ function validateMimeTypes(campaign, bidRequest) {
 
 function validateApiFrameworks(campaign, bidRequest) {
   const campaignApis = parsePgArray(campaign.api_frameworks);
-  
+
   const bidRequestApis = [];
   bidRequest.imp.forEach(imp => {
     if (imp.banner?.api) bidRequestApis.push(...imp.banner.api);
     if (imp.video?.api) bidRequestApis.push(...imp.video.api);
   });
-  
+
   if (!campaignApis || campaignApis.length === 0) {
+    const displayValues = bidRequestApis.map(api => `${api} (${getApiFrameworkName(api)})`);
     return {
       field: 'api_frameworks',
       campaignValue: 'not set (any allowed)',
-      bidRequestValue: bidRequestApis.length > 0 ? formatArrayForDisplay(bidRequestApis) : 'not specified',
+      bidRequestValue: bidRequestApis.length > 0 ? formatArrayForDisplay(displayValues) : 'not specified',
       match: null
     };
   }
-  
+
   if (bidRequestApis.length === 0) {
     return {
       field: 'api_frameworks',
@@ -1295,34 +1372,37 @@ function validateApiFrameworks(campaign, bidRequest) {
       match: null
     };
   }
-  
+
   const match = campaignApis.some(api => bidRequestApis.includes(parseInt(api)));
-  
+
+  const displayValues = bidRequestApis.map(api => `${api} (${getApiFrameworkName(api)})`);
+
   return {
     field: 'api_frameworks',
     campaignValue: formatArrayForDisplay(campaignApis),
-    bidRequestValue: formatArrayForDisplay(bidRequestApis),
+    bidRequestValue: formatArrayForDisplay(displayValues),
     match: match
   };
 }
 
 function validateProtocols(campaign, bidRequest) {
   const campaignProtocols = parsePgArray(campaign.protocols);
-  
+
   const bidRequestProtocols = [];
   bidRequest.imp.forEach(imp => {
     if (imp.video?.protocols) bidRequestProtocols.push(...imp.video.protocols);
   });
-  
+
   if (!campaignProtocols || campaignProtocols.length === 0) {
+    const displayValues = bidRequestProtocols.map(proto => `${proto} (${getProtocolName(proto)})`);
     return {
       field: 'protocols (video)',
       campaignValue: 'not set (any allowed)',
-      bidRequestValue: bidRequestProtocols.length > 0 ? formatArrayForDisplay(bidRequestProtocols) : 'not specified',
+      bidRequestValue: bidRequestProtocols.length > 0 ? formatArrayForDisplay(displayValues) : 'not specified',
       match: null
     };
   }
-  
+
   if (bidRequestProtocols.length === 0) {
     return {
       field: 'protocols (video)',
@@ -1331,34 +1411,37 @@ function validateProtocols(campaign, bidRequest) {
       match: null
     };
   }
-  
+
   const match = campaignProtocols.some(proto => bidRequestProtocols.includes(parseInt(proto)));
-  
+
+  const displayValues = bidRequestProtocols.map(proto => `${proto} (${getProtocolName(proto)})`);
+
   return {
     field: 'protocols (video)',
     campaignValue: formatArrayForDisplay(campaignProtocols),
-    bidRequestValue: formatArrayForDisplay(bidRequestProtocols),
+    bidRequestValue: formatArrayForDisplay(displayValues),
     match: match
   };
 }
 
 function validatePlaybackMethods(campaign, bidRequest) {
   const campaignPlayback = parsePgArray(campaign.playback_methods);
-  
+
   const bidRequestPlayback = [];
   bidRequest.imp.forEach(imp => {
     if (imp.video?.playbackmethod) bidRequestPlayback.push(...imp.video.playbackmethod);
   });
-  
+
   if (!campaignPlayback || campaignPlayback.length === 0) {
+    const displayValues = bidRequestPlayback.map(pm => `${pm} (${getPlaybackMethodName(pm)})`);
     return {
       field: 'playback_methods (video)',
       campaignValue: 'not set (any allowed)',
-      bidRequestValue: bidRequestPlayback.length > 0 ? formatArrayForDisplay(bidRequestPlayback) : 'not specified',
+      bidRequestValue: bidRequestPlayback.length > 0 ? formatArrayForDisplay(displayValues) : 'not specified',
       match: null
     };
   }
-  
+
   if (bidRequestPlayback.length === 0) {
     return {
       field: 'playback_methods (video)',
@@ -1367,13 +1450,15 @@ function validatePlaybackMethods(campaign, bidRequest) {
       match: null
     };
   }
-  
+
   const match = campaignPlayback.some(pm => bidRequestPlayback.includes(parseInt(pm)));
-  
+
+  const displayValues = bidRequestPlayback.map(pm => `${pm} (${getPlaybackMethodName(pm)})`);
+
   return {
     field: 'playback_methods (video)',
     campaignValue: formatArrayForDisplay(campaignPlayback),
-    bidRequestValue: formatArrayForDisplay(bidRequestPlayback),
+    bidRequestValue: formatArrayForDisplay(displayValues),
     match: match
   };
 }
@@ -1536,6 +1621,15 @@ function displayValidationResults(results) {
   </div>`;
   
   container.innerHTML = html;
+}
+
+function clearValidatorInputs() {
+  if (confirm('Are you sure you want to clear all inputs?')) {
+    document.getElementById('campaignJson').value = '';
+    document.getElementById('bidRequestJson').value = '';
+    document.getElementById('validationResults').innerHTML = '';
+    showStatus('info', 'Inputs cleared');
+  }
 }
 
 function loadValidatorSample() {

@@ -37,7 +37,12 @@ function buildBidRequestFromCampaign(campaign) {
     id: `test-${timestamp}-${random}`,
     imp: [],
     cur: [campaign.currency || 'USD'],
-    at: 1
+    at: 1,
+    tmax: 120,
+    test: parseBoolean(campaign.test_flag) ? 1 : 0,
+    allimps: 0,
+    bcat: [],
+    badv: []
   };
 
   // Build impression
@@ -58,15 +63,14 @@ function buildBidRequestFromCampaign(campaign) {
   // Build device
   bidRequest.device = buildDevice(campaign);
 
-  // Build source
-  const supplySource = parsePgArray(campaign.supply_source_allowlist);
-  if (supplySource && supplySource.length > 0) {
-    bidRequest.source = {
-      ext: {
-        supply_source: supplySource[0]
-      }
-    };
-  }
+  // Build user
+  bidRequest.user = buildUser(campaign);
+
+  // Build source (including schain)
+  bidRequest.source = buildSource(campaign, timestamp);
+
+  // Build regs (regulatory)
+  bidRequest.regs = buildRegs(campaign);
 
   return bidRequest;
 }
@@ -74,7 +78,9 @@ function buildBidRequestFromCampaign(campaign) {
 function buildImpression(campaign) {
   const imp = {
     id: "1",
-    secure: 1
+    secure: 1,
+    displaymanager: "test-tool",
+    displaymanagerver: "1.0"
   };
 
   // Add tagid if available
@@ -97,10 +103,10 @@ function buildImpression(campaign) {
     imp.banner = buildBanner(campaign);
   }
 
-  // Set bidfloor (80% of campaign price)
+  // Set bidfloor (5% of campaign price)
   if (campaign.price) {
     const price = parseFloat(campaign.price);
-    imp.bidfloor = parseFloat((price * 0.8).toFixed(4));
+    imp.bidfloor = parseFloat((price * 0.05).toFixed(4));
     imp.bidfloorcur = campaign.currency || 'USD';
   }
 
@@ -117,7 +123,14 @@ function buildImpression(campaign) {
 }
 
 function buildBanner(campaign) {
-  const banner = {};
+  const banner = {
+    id: "1",
+    pos: 0,
+    topframe: 1,
+    expdir: [1, 2, 3, 4],
+    btype: [],
+    battr: []
+  };
 
   if (campaign.width) {
     banner.w = parseInt(campaign.width);
@@ -127,10 +140,20 @@ function buildBanner(campaign) {
     banner.h = parseInt(campaign.height);
   }
 
-  // Add mime types if available
+  // Add format array for multi-size support
+  if (campaign.width && campaign.height) {
+    banner.format = [{
+      w: parseInt(campaign.width),
+      h: parseInt(campaign.height)
+    }];
+  }
+
+  // Add mime types if available, otherwise defaults
   const mimeTypes = parsePgArray(campaign.mime_types);
   if (mimeTypes && mimeTypes.length > 0) {
     banner.mimes = mimeTypes;
+  } else {
+    banner.mimes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
   }
 
   // Add API frameworks if available
@@ -145,7 +168,15 @@ function buildBanner(campaign) {
 function buildVideo(campaign, placement, linearity) {
   const video = {
     placement: placement,
-    linearity: linearity
+    linearity: linearity,
+    sequence: 1,
+    startdelay: 0,
+    minbitrate: 300,
+    maxbitrate: 1500,
+    boxingallowed: 1,
+    delivery: [2],
+    pos: 0,
+    battr: []
   };
 
   if (campaign.width) {
@@ -161,30 +192,43 @@ function buildVideo(campaign, placement, linearity) {
     const duration = parseInt(campaign.duration);
     video.minduration = duration;
     video.maxduration = duration;
+  } else {
+    video.minduration = 5;
+    video.maxduration = 30;
   }
 
   // Skippable
   const skippable = parseBoolean(campaign.is_skippable);
   if (skippable !== null) {
     video.skip = skippable ? 1 : 0;
+    if (skippable) {
+      video.skipmin = 5;
+      video.skipafter = 5;
+    }
   }
 
   // Protocols
   const protocols = parsePgArray(campaign.protocols);
   if (protocols && protocols.length > 0) {
     video.protocols = protocols.map(p => parseInt(p));
+  } else {
+    video.protocols = [2, 3, 5, 6];
   }
 
   // Playback methods
   const playbackMethods = parsePgArray(campaign.playback_methods);
   if (playbackMethods && playbackMethods.length > 0) {
     video.playbackmethod = playbackMethods.map(pm => parseInt(pm));
+  } else {
+    video.playbackmethod = [1, 2];
   }
 
   // Mime types
   const mimeTypes = parsePgArray(campaign.mime_types);
   if (mimeTypes && mimeTypes.length > 0) {
     video.mimes = mimeTypes;
+  } else {
+    video.mimes = ["video/mp4", "video/webm", "application/javascript"];
   }
 
   // API frameworks
@@ -197,7 +241,10 @@ function buildVideo(campaign, placement, linearity) {
 }
 
 function buildSite(campaign) {
-  const site = {};
+  const site = {
+    mobile: 0,
+    privacypolicy: 1
+  };
 
   // Site ID
   const siteIds = parsePgArray(campaign.site_id_allowlist);
@@ -209,6 +256,8 @@ function buildSite(campaign) {
   const domains = parsePgArray(campaign.domain_allowlist);
   if (domains && domains.length > 0) {
     site.domain = domains[0];
+    site.page = `https://${domains[0]}/page-${Math.floor(Math.random() * 1000)}`;
+    site.ref = `https://${domains[0]}`;
   }
 
   // Site name
@@ -229,19 +278,32 @@ function buildSite(campaign) {
     if (publisherNames && publisherNames.length > 0) {
       site.publisher.name = publisherNames[0];
     }
+    // Add publisher domain
+    if (domains && domains.length > 0) {
+      site.publisher.domain = domains[0];
+    }
   }
 
   // IAB categories
   const iabCategories = parsePgArray(campaign.iab_categories);
   if (iabCategories && iabCategories.length > 0) {
     site.cat = iabCategories;
+    site.pagecat = iabCategories;
+    site.sectioncat = iabCategories;
   }
+
+  // Keywords
+  site.keywords = 'news,sports';
 
   return site;
 }
 
 function buildApp(campaign) {
-  const app = {};
+  const app = {
+    ver: '1.0.0',
+    paid: 0,
+    privacypolicy: 1
+  };
 
   // App ID
   const siteIds = parsePgArray(campaign.site_id_allowlist);
@@ -253,6 +315,8 @@ function buildApp(campaign) {
   const domains = parsePgArray(campaign.domain_allowlist);
   if (domains && domains.length > 0) {
     app.bundle = domains[0];
+    app.storeurl = `https://play.google.com/store/apps/details?id=${domains[0]}`;
+    app.domain = domains[0];
   }
 
   // App name
@@ -273,13 +337,22 @@ function buildApp(campaign) {
     if (publisherNames && publisherNames.length > 0) {
       app.publisher.name = publisherNames[0];
     }
+    // Add publisher domain
+    if (domains && domains.length > 0) {
+      app.publisher.domain = domains[0];
+    }
   }
 
   // IAB categories
   const iabCategories = parsePgArray(campaign.iab_categories);
   if (iabCategories && iabCategories.length > 0) {
     app.cat = iabCategories;
+    app.pagecat = iabCategories;
+    app.sectioncat = iabCategories;
   }
+
+  // Keywords
+  app.keywords = 'gaming,entertainment';
 
   return app;
 }
@@ -287,19 +360,42 @@ function buildApp(campaign) {
 function buildDevice(campaign) {
   const device = {
     ip: "192.168.1.100",
-    ua: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    ua: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    dnt: 0,
+    lmt: 0,
+    w: 1920,
+    h: 1080,
+    pxratio: 1.0,
+    js: 1,
+    hwv: "1.0",
+    ifa: "6D92078A-8246-4BA4-AE5B-76104861E7DC"
   };
 
-  // OS
-  const osList = parsePgArray(campaign.os_allowlist);
-  if (osList && osList.length > 0) {
-    device.os = osList[0];
+  // OS - parse lquery pattern (e.g., "{Android.*}" -> "Android")
+  const os = parseLquery(campaign.os_allowlist);
+  if (os) {
+    device.os = os;
+    device.osv = "10.0";
   }
 
-  // Device type
+  // Device type - convert string names to OpenRTB integers
   const deviceTypes = parsePgArray(campaign.device_type_allowlist);
   if (deviceTypes && deviceTypes.length > 0) {
-    device.devicetype = parseInt(deviceTypes[0]);
+    // Try to convert if it's a string name like "Phone" or "Tablet"
+    const deviceTypeInt = parseInt(deviceTypes[0]);
+    if (!isNaN(deviceTypeInt)) {
+      device.devicetype = deviceTypeInt;
+    } else {
+      const converted = convertDeviceType(deviceTypes[0]);
+      if (converted) {
+        device.devicetype = converted;
+      }
+    }
+  }
+
+  // Default to PC if not set
+  if (!device.devicetype) {
+    device.devicetype = 2;
   }
 
   // Language
@@ -320,10 +416,14 @@ function buildDevice(campaign) {
     device.isp = isps[0];
   }
 
-  // Device make/model
-  const devices = parsePgArray(campaign.device_allowlist);
-  if (devices && devices.length > 0) {
-    device.make = devices[0];
+  // Device make/model - parse lquery pattern
+  const devicePattern = parseLquery(campaign.device_allowlist);
+  if (devicePattern) {
+    const deviceParts = devicePattern.split(' ');
+    device.make = deviceParts[0];
+    if (deviceParts.length > 1) {
+      device.model = deviceParts.slice(1).join(' ');
+    }
   }
 
   // Geo
@@ -332,20 +432,77 @@ function buildDevice(campaign) {
   return device;
 }
 
-function buildGeo(campaign) {
-  const geo = {};
+function applyCountryDefaults(geo, countryCode) {
+  geo.country = countryCode;
+  switch (countryCode) {
+    case 'IT':
+      geo.lat = 45.4642; geo.lon = 9.1900;
+      geo.city = 'Milan'; geo.region = 'IT-25';
+      break;
+    case 'DE':
+      geo.lat = 52.5200; geo.lon = 13.4050;
+      geo.city = 'Berlin'; geo.region = 'DE-BE';
+      break;
+    case 'US':
+      geo.lat = 40.7128; geo.lon = -74.0060;
+      geo.city = 'New York'; geo.region = 'US-NY';
+      geo.metro = '501';
+      break;
+    case 'GB':
+      geo.lat = 51.5074; geo.lon = -0.1278;
+      geo.city = 'London'; geo.region = 'GB-ENG';
+      break;
+    case 'FR':
+      geo.lat = 48.8566; geo.lon = 2.3522;
+      geo.city = 'Paris'; geo.region = 'FR-IDF';
+      break;
+    case 'CZ':
+      geo.lat = 50.0755; geo.lon = 14.4378;
+      geo.city = 'Prague'; geo.region = 'CZ-PR';
+      break;
+    case 'HR':
+      geo.lat = 45.8150; geo.lon = 15.9819;
+      geo.city = 'Zagreb'; geo.region = 'HR-01';
+      break;
+    default:
+      geo.city = 'Unknown';
+  }
+}
 
-  // Country
-  const geoList = parsePgArray(campaign.geo_allowlist);
-  if (geoList && geoList.length > 0) {
-    geo.country = geoList[0];
+function buildGeo(campaign) {
+  const geo = {
+    type: 2, // IP address location
+    lat: 52.5200,
+    lon: 13.4050
+  };
+
+  // Country - parse lquery pattern (e.g., "{DE.*.*}" -> "DE")
+  const countryCode = parseLquery(campaign.geo_allowlist);
+  if (countryCode) {
+    applyCountryDefaults(geo, countryCode);
+  } else {
+    // Default to Berlin
+    geo.country = 'DE';
+    geo.city = 'Berlin';
+    geo.region = 'DE-BE';
   }
 
-  // Postal code
+  // Postal code - format: "CZ.390 03" (new) or "390 03" (legacy)
+  // If country prefix present, strip it from zip and apply that country to geo
   const postalCodes = parsePgArray(campaign.postal_code_allowlist);
   if (postalCodes && postalCodes.length > 0) {
-    geo.zip = postalCodes[0];
+    const firstCode = postalCodes[0];
+    const prefixMatch = firstCode.match(/^([A-Z]{2})\.(.+)$/);
+    if (prefixMatch) {
+      geo.zip = prefixMatch[2];
+      applyCountryDefaults(geo, prefixMatch[1]);
+    } else {
+      geo.zip = firstCode;
+    }
   }
+
+  // UTC offset (in minutes)
+  geo.utcoffset = 60;
 
   return geo;
 }
@@ -380,6 +537,70 @@ function buildPmp(campaign) {
   pmp.deals.push(deal);
 
   return pmp;
+}
+
+function buildUser(campaign) {
+  const user = {
+    id: "227c754a-96a8-4275-9bcd-75b1fa1cf200",
+    ext: {
+      consent: "CQh4EjAQh4EjAAfTyBENCYFsAP_AAEPAAAigJqtR_G__bXlr-TL36btkeYxf99hr7sQxBgbJs24FyDvW7JwH32EyNAyatqYKmRIAuzRBIQFtHJjURUChCIgVrTDsYEGUgTNKJ-BkgHMRY2NYCFxvmYljWQCZ4up_Z1d5mT-t7dr-2dzyy5hnv3Y9PmQlUIidCYctHfn8ZBAACAAAUAAQAAEApAAAEAMKQQAQICkAggQAgoChQAgQIJqgAmGhUQRlgQCBAoCEECABQVhABQIAgAASBogIASBgQ5AwAXWEyAAAKAAYIAQAAgwABAAAJAAhEAEABAIAQIBAoAAAAAAAIAGBgADABYiAQAAgOgYhgQQCBYAJEZVBpgSgAJBAS2VCCQBAgrhAkGGAAQIiYCAAAEAAoAAAAAAAAEAAAAAAAoAAAAAAAAAAAACAAAAQAgoCBAAAQIAA.IJqtR_G__bXlr-TL36btkeYxf99hr7sQxBgbJs24FyDvW7JwH32EyNAyatqYKmRIAuzRBIQFtHJjURUChCIgVrTDsYEGUgTNKJ-BkgHMRY2NYCFxvmYljWQCZ4up_Z1d5mT-t7dr-2dzyy5hnv3Y9PmQlUIidCYctHfn8ZBAACAAAUAAQAAEApAAAEAMKQQAQICkAggQAgoChQAgQIA",
+      google_consent: []
+    }
+  };
+
+  return user;
+}
+
+function buildSource(campaign, timestamp) {
+  const supplySource = parsePgArray(campaign.supply_source_allowlist);
+
+  const source = {
+    fd: 1,
+    tid: `${timestamp}-${Math.floor(Math.random() * 100000)}`,
+    ext: {}
+  };
+
+  // Add supply_source to ext if available
+  if (supplySource && supplySource.length > 0) {
+    source.ext.supply_source = supplySource[0];
+  }
+
+  // Add supply chain (schain)
+  source.ext.schain = {
+    complete: 1,
+    ver: "1.0",
+    nodes: [
+      {
+        asi: "example-ssp.com",
+        sid: "00001",
+        hp: 1,
+        rid: source.tid
+      }
+    ]
+  };
+
+  return source;
+}
+
+function buildRegs(campaign) {
+  const regs = {
+    coppa: 0,
+    ext: {
+      gdpr: 1,
+      consent: "CQh4EjAQh4EjAAfTyBENCYFsAP_AAEPAAAigJqtR_G__bXlr-TL36btkeYxf99hr7sQxBgbJs24FyDvW7JwH32EyNAyatqYKmRIAuzRBIQFtHJjURUChCIgVrTDsYEGUgTNKJ-BkgHMRY2NYCFxvmYljWQCZ4up_Z1d5mT-t7dr-2dzyy5hnv3Y9PmQlUIidCYctHfn8ZBAACAAAUAAQAAEApAAAEAMKQQAQICkAggQAgoChQAgQIJqgAmGhUQRlgQCBAoCEECABQVhABQIAgAASBogIASBgQ5AwAXWEyAAAKAAYIAQAAgwABAAAJAAhEAEABAIAQIBAoAAAAAAAIAGBgADABYiAQAAgOgYhgQQCBYAJEZVBpgSgAJBAS2VCCQBAgrhAkGGAAQIiYCAAAEAAoAAAAAAAAEAAAAAAAoAAAAAAAAAAAACAAAAQAgoCBAAAQIAA.IJqtR_G__bXlr-TL36btkeYxf99hr7sQxBgbJs24FyDvW7JwH32EyNAyatqYKmRIAuzRBIQFtHJjURUChCIgVrTDsYEGUgTNKJ-BkgHMRY2NYCFxvmYljWQCZ4up_Z1d5mT-t7dr-2dzyy5hnv3Y9PmQlUIidCYctHfn8ZBAACAAAUAAQAAEApAAAEAMKQQAQICkAggQAgoChQAgQIA",
+      us_privacy: "1---"
+    }
+  };
+
+  return regs;
+}
+
+function clearGeneratorInputs() {
+  if (confirm('Are you sure you want to clear all inputs?')) {
+    document.getElementById('generatorCampaignJson').value = '';
+    document.getElementById('generatedBidRequest').textContent = '-- Click "Generate Bid Request"';
+    showStatus('info', 'Inputs cleared');
+  }
 }
 
 function copyGeneratedBidRequest() {

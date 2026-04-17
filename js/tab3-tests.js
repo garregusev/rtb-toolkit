@@ -15,6 +15,9 @@ function runAllTests() {
   // Category 3: Generator Logic (7 tests)
   runGeneratorTests();
 
+  // Category 4: SQL Analyzer Logic (5 tests)
+  runSQLAnalyzerTests();
+
   // Display results
   displayTestResults();
 
@@ -247,8 +250,8 @@ function runGeneratorTests() {
            bidRequest.imp[0].pmp.deals[0].id === 'DEAL-123';
   });
 
-  // Test 22: Bidfloor is 80% of campaign price
-  test('Bidfloor is 80% of campaign price', () => {
+  // Test 22: Bidfloor is 5% of campaign price
+  test('Bidfloor is 5% of campaign price', () => {
     const campaign = {
       media_type: 'DISPLAY',
       width: '300',
@@ -257,7 +260,7 @@ function runGeneratorTests() {
       currency: 'USD'
     };
     const bidRequest = buildBidRequestFromCampaign(campaign);
-    const expectedBidfloor = 2.0; // 2.5 * 0.8
+    const expectedBidfloor = 0.125; // 2.5 * 0.05
     return bidRequest.imp[0].bidfloor === expectedBidfloor;
   });
 
@@ -289,6 +292,69 @@ function runGeneratorTests() {
   console.log('');
 }
 
+// ========== CATEGORY 4: SQL ANALYZER LOGIC ==========
+
+function runSQLAnalyzerTests() {
+  console.log('--- Category 4: SQL Analyzer Logic ---\n');
+
+  // Test 24: Markdown headers conversion
+  test('Convert markdown headers to HTML', () => {
+    const markdown = '## Heading 2\n### Heading 3';
+    const tempDiv = document.createElement('div');
+
+    displayAnalysisResults(markdown, tempDiv);
+    const html = tempDiv.innerHTML;
+
+    return html.includes('<h2>Heading 2</h2>') && html.includes('<h3>Heading 3</h3>');
+  });
+
+  // Test 25: Markdown bold text conversion
+  test('Convert markdown bold to HTML', () => {
+    const markdown = 'This is **bold text** here';
+    const tempDiv = document.createElement('div');
+
+    displayAnalysisResults(markdown, tempDiv);
+    const html = tempDiv.innerHTML;
+
+    return html.includes('<strong>bold text</strong>');
+  });
+
+  // Test 26: Markdown inline code conversion
+  test('Convert markdown inline code to HTML', () => {
+    const markdown = 'Use `SELECT * FROM table` query';
+    const tempDiv = document.createElement('div');
+
+    displayAnalysisResults(markdown, tempDiv);
+    const html = tempDiv.innerHTML;
+
+    return html.includes('<code>SELECT * FROM table</code>');
+  });
+
+  // Test 27: Markdown code block conversion
+  test('Convert markdown code blocks to HTML', () => {
+    const markdown = '```sql\nSELECT * FROM bid_entities\n```';
+    const tempDiv = document.createElement('div');
+
+    displayAnalysisResults(markdown, tempDiv);
+    const html = tempDiv.innerHTML;
+
+    return html.includes('<pre><code>') && html.includes('SELECT * FROM bid_entities');
+  });
+
+  // Test 28: Results wrapped in analysis-result div
+  test('Results wrapped in analysis-result div', () => {
+    const markdown = 'Test content';
+    const tempDiv = document.createElement('div');
+
+    displayAnalysisResults(markdown, tempDiv);
+    const html = tempDiv.innerHTML;
+
+    return html.includes('class="analysis-result"');
+  });
+
+  console.log('');
+}
+
 // ========== TEST HELPER FUNCTIONS ==========
 
 function test(name, testFn) {
@@ -311,57 +377,6 @@ function test(name, testFn) {
 }
 
 function displayTestResults() {
-  const container = document.getElementById('testResults');
-
-  if (!container) {
-    console.error('Test results container not found');
-    return;
-  }
-
-  let html = '<div class="test-output">';
-
-  // Group by category
-  const categories = [
-    { name: 'Core Utilities', start: 0, count: 8 },
-    { name: 'Validation Logic', start: 8, count: 8 },
-    { name: 'Generator Logic', start: 16, count: 7 }
-  ];
-
-  categories.forEach(category => {
-    html += `<div class="test-category">`;
-    html += `<h4>${category.name}</h4>`;
-    html += `<ul class="test-list">`;
-
-    const categoryResults = testResults.slice(category.start, category.start + category.count);
-
-    categoryResults.forEach(result => {
-      const statusClass = result.passed ? 'test-pass' : 'test-fail';
-      const symbol = result.passed ? '✓' : '✗';
-
-      html += `<li class="${statusClass}">`;
-      html += `<span class="test-symbol">${symbol}</span>`;
-      html += `<span class="test-name">${result.name}</span>`;
-      if (result.error) {
-        html += `<span class="test-error"> - ${result.error}</span>`;
-      }
-      html += `</li>`;
-    });
-
-    html += `</ul></div>`;
-  });
-
-  // Summary
-  const passed = testResults.filter(r => r.passed).length;
-  const failed = testResults.filter(r => !r.passed).length;
-  const total = testResults.length;
-
-  const summaryClass = failed === 0 ? 'status success' : 'status warning';
-
-  html += `<div class="${summaryClass}" style="margin-top: 20px;">`;
-  html += `<strong>Summary:</strong> ${passed} passed, ${failed} failed out of ${total} total tests`;
-  html += `</div>`;
-
-  html += '</div>';
-
-  container.innerHTML = html;
+  // Results are only shown in console now
+  // No UI container needed
 }
