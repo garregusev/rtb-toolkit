@@ -466,14 +466,20 @@ function validatePostalCode(campaign, bidRequest) {
     };
   }
   
+  // Strip country prefix if present: "CZ.390 03" -> "390 03"
+  const stripPostalPrefix = (code) => {
+    const m = code.match(/^[A-Z]{2}\.(.+)$/);
+    return m ? m[1] : code;
+  };
+
   let match = true;
-  
+
   if (allowlist && allowlist.length > 0) {
-    match = match && allowlist.includes(postalCode);
+    match = match && allowlist.map(stripPostalPrefix).includes(postalCode);
   }
-  
+
   if (blocklist && blocklist.length > 0) {
-    match = match && !blocklist.includes(postalCode);
+    match = match && !blocklist.map(stripPostalPrefix).includes(postalCode);
   }
   
   const campaignValueDisplay = allowlist && allowlist.length > 0
