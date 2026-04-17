@@ -12,35 +12,15 @@
       <h1>🎯 RTB Bidding Toolkit</h1>
       <p>Validate bid requests against campaigns & generate OpenRTB test requests</p>
     </div>
-    
+
     <div class="tabs">
-      <a href="#validator" class="tab active" data-tab="validator">📊 Bid Request Validator</a>
-      <a href="#generator" class="tab" data-tab="generator">🔄 Bid Request Generator</a>
+      <a href="#generator" class="tab active" data-tab="generator">🔄 Bid Request Generator</a>
       <a href="#sql-analyzer" class="tab" data-tab="sql-analyzer">🔬 SQL Analyzer</a>
+      <a href="#validator" class="tab" data-tab="validator">📊 Bid Request Validator</a>
     </div>
 
-    <!-- Tab 1: Validator -->
-    <div id="validator" class="tab-content active">
-      <div class="section">
-        <label for="campaignJson">Campaign Data (from bid_entities):</label>
-        <textarea id="campaignJson" rows="5" placeholder='Paste campaign JSON here...'></textarea>
-      </div>
-
-      <div class="section">
-        <label for="bidRequestJson">Bid Request JSON (OpenRTB 2.6):</label>
-        <textarea id="bidRequestJson" rows="6" placeholder='Paste bid request JSON here...'></textarea>
-      </div>
-
-      <div class="button-group">
-        <button class="btn-primary" onclick="validateBidRequest()">🔍 Validate</button>
-        <button class="btn-secondary" onclick="clearValidatorInputs()">🗑️ Clear</button>
-      </div>
-
-      <div id="validationResults" class="output-section"></div>
-    </div>
-
-    <!-- Tab 2: Generator -->
-    <div id="generator" class="tab-content">
+    <!-- Tab 1: Generator -->
+    <div id="generator" class="tab-content active">
       <div class="section">
         <label for="generatorCampaignJson">Campaign Data (from bid_entities):</label>
         <textarea id="generatorCampaignJson" rows="5" placeholder='Paste campaign JSON here...'></textarea>
@@ -59,34 +39,8 @@
       </div>
     </div>
 
-    <!-- Tab 3: SQL Analyzer -->
+    <!-- Tab 2: SQL Analyzer -->
     <div id="sql-analyzer" class="tab-content">
-      <div class="section">
-        <label for="responseLanguage">Response Language:</label>
-        <select id="responseLanguage" style="width: 100%; padding: 10px; border: 1px solid #dee2e6; border-radius: 4px; font-size: 14px;">
-          <option value="en">English</option>
-          <option value="ru">Русский</option>
-          <option value="de">Deutsch</option>
-          <option value="es">Español</option>
-          <option value="fr">Français</option>
-          <option value="tr">Türkçe</option>
-          <option value="hi">हिन्दी</option>
-        </select>
-      </div>
-
-      <div class="section">
-        <label for="geminiApiKey">
-          Gemini API Key:
-          <a href="https://aistudio.google.com/apikey" target="_blank" style="font-size: 12px; color: #667eea;">Get free key →</a>
-        </label>
-        <input
-          type="password"
-          id="geminiApiKey"
-          placeholder="Paste your Gemini API key here (saved in browser, never sent to server)"
-          style="width: 100%; padding: 10px; border: 1px solid #dee2e6; border-radius: 4px; font-family: monospace; font-size: 13px;"
-        />
-      </div>
-
       <div class="section">
         <label for="sqlCampaignJson">Campaign Data (from bid_entities):</label>
         <textarea id="sqlCampaignJson" rows="5" placeholder='Paste campaign JSON here...'></textarea>
@@ -99,10 +53,31 @@
 
       <div class="button-group">
         <button class="btn-primary" onclick="analyzeSQLMismatch()">🔬 Compare</button>
+        <button class="btn-success" onclick="loadSQLAnalyzerSample()">📝 Load Sample</button>
         <button class="btn-secondary" onclick="clearSQLAnalyzer()">🗑️ Clear</button>
       </div>
 
       <div id="sqlAnalysisResults" class="output-section"></div>
+    </div>
+
+    <!-- Tab 3: Validator -->
+    <div id="validator" class="tab-content">
+      <div class="section">
+        <label for="campaignJson">Campaign Data (from bid_entities):</label>
+        <textarea id="campaignJson" rows="5" placeholder='Paste campaign JSON here...'></textarea>
+      </div>
+
+      <div class="section">
+        <label for="bidRequestJson">Bid Request JSON (OpenRTB 2.6):</label>
+        <textarea id="bidRequestJson" rows="6" placeholder='Paste bid request JSON here...'></textarea>
+      </div>
+
+      <div class="button-group">
+        <button class="btn-primary" onclick="validateBidRequest()">🔍 Validate</button>
+        <button class="btn-secondary" onclick="clearValidatorInputs()">🗑️ Clear</button>
+      </div>
+
+      <div id="validationResults" class="output-section"></div>
     </div>
   </div>
 
@@ -112,27 +87,10 @@
   <script src="js/tab2-generator.js"></script>
   <script src="js/tab4-sql-analyzer.js"></script>
   <script src="js/tab3-tests.js"></script>
-  
+
   <script>
-    // Initialize on page load
     window.addEventListener('DOMContentLoaded', () => {
       initializeTabs();
-
-      // Load saved Gemini API key and language from localStorage
-      const savedApiKey = localStorage.getItem('gemini_api_key');
-      if (savedApiKey) {
-        document.getElementById('geminiApiKey').value = savedApiKey;
-      }
-
-      const savedLanguage = localStorage.getItem('response_language');
-      if (savedLanguage) {
-        document.getElementById('responseLanguage').value = savedLanguage;
-      }
-
-      // Save language when changed
-      document.getElementById('responseLanguage').addEventListener('change', (e) => {
-        localStorage.setItem('response_language', e.target.value);
-      });
 
       // Run tests in console
       setTimeout(() => {
