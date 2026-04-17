@@ -432,6 +432,43 @@ function buildDevice(campaign) {
   return device;
 }
 
+function applyCountryDefaults(geo, countryCode) {
+  geo.country = countryCode;
+  switch (countryCode) {
+    case 'IT':
+      geo.lat = 45.4642; geo.lon = 9.1900;
+      geo.city = 'Milan'; geo.region = 'IT-25';
+      break;
+    case 'DE':
+      geo.lat = 52.5200; geo.lon = 13.4050;
+      geo.city = 'Berlin'; geo.region = 'DE-BE';
+      break;
+    case 'US':
+      geo.lat = 40.7128; geo.lon = -74.0060;
+      geo.city = 'New York'; geo.region = 'US-NY';
+      geo.metro = '501';
+      break;
+    case 'GB':
+      geo.lat = 51.5074; geo.lon = -0.1278;
+      geo.city = 'London'; geo.region = 'GB-ENG';
+      break;
+    case 'FR':
+      geo.lat = 48.8566; geo.lon = 2.3522;
+      geo.city = 'Paris'; geo.region = 'FR-IDF';
+      break;
+    case 'CZ':
+      geo.lat = 50.0755; geo.lon = 14.4378;
+      geo.city = 'Prague'; geo.region = 'CZ-PR';
+      break;
+    case 'HR':
+      geo.lat = 45.8150; geo.lon = 15.9819;
+      geo.city = 'Zagreb'; geo.region = 'HR-01';
+      break;
+    default:
+      geo.city = 'Unknown';
+  }
+}
+
 function buildGeo(campaign) {
   const geo = {
     type: 2, // IP address location
@@ -442,38 +479,7 @@ function buildGeo(campaign) {
   // Country - parse lquery pattern (e.g., "{DE.*.*}" -> "DE")
   const countryCode = parseLquery(campaign.geo_allowlist);
   if (countryCode) {
-    geo.country = countryCode;
-
-    // Set realistic city/region based on country
-    if (countryCode === 'IT') {
-      geo.lat = 45.4642;
-      geo.lon = 9.1900;
-      geo.city = 'Milan';
-      geo.region = 'IT-25';
-    } else if (countryCode === 'DE') {
-      geo.lat = 52.5200;
-      geo.lon = 13.4050;
-      geo.city = 'Berlin';
-      geo.region = 'DE-BE';
-    } else if (countryCode === 'US') {
-      geo.lat = 40.7128;
-      geo.lon = -74.0060;
-      geo.city = 'New York';
-      geo.region = 'US-NY';
-      geo.metro = '501';
-    } else if (countryCode === 'GB') {
-      geo.lat = 51.5074;
-      geo.lon = -0.1278;
-      geo.city = 'London';
-      geo.region = 'GB-ENG';
-    } else if (countryCode === 'FR') {
-      geo.lat = 48.8566;
-      geo.lon = 2.3522;
-      geo.city = 'Paris';
-      geo.region = 'FR-IDF';
-    } else {
-      geo.city = 'Unknown';
-    }
+    applyCountryDefaults(geo, countryCode);
   } else {
     // Default to Berlin
     geo.country = 'DE';
@@ -481,10 +487,18 @@ function buildGeo(campaign) {
     geo.region = 'DE-BE';
   }
 
-  // Postal code
+  // Postal code - format: "CZ.390 03" (new) or "390 03" (legacy)
+  // If country prefix present, strip it from zip and apply that country to geo
   const postalCodes = parsePgArray(campaign.postal_code_allowlist);
   if (postalCodes && postalCodes.length > 0) {
-    geo.zip = postalCodes[0];
+    const firstCode = postalCodes[0];
+    const prefixMatch = firstCode.match(/^([A-Z]{2})\.(.+)$/);
+    if (prefixMatch) {
+      geo.zip = prefixMatch[2];
+      applyCountryDefaults(geo, prefixMatch[1]);
+    } else {
+      geo.zip = firstCode;
+    }
   }
 
   // UTC offset (in minutes)
