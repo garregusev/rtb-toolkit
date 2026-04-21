@@ -16,7 +16,7 @@
     <div class="tabs">
       <a href="#generator" class="tab active" data-tab="generator">🔄 Bid Request Generator</a>
       <a href="#sql-analyzer" class="tab" data-tab="sql-analyzer">🔬 SQL Analyzer</a>
-      <a href="#validator" class="tab" data-tab="validator">📊 Bid Request Validator</a>
+      <a href="#validator" class="tab" data-tab="validator" style="display:none">📊 Bid Request Validator</a>
     </div>
 
     <!-- Tab 1: Generator -->
@@ -60,8 +60,8 @@
       <div id="sqlAnalysisResults" class="output-section"></div>
     </div>
 
-    <!-- Tab 3: Validator -->
-    <div id="validator" class="tab-content">
+    <!-- Tab 3: Validator (hidden) -->
+    <div id="validator" class="tab-content" style="display:none">
       <div class="section">
         <label for="campaignJson">Campaign Data (from bid_entities):</label>
         <textarea id="campaignJson" rows="5" placeholder='Paste campaign JSON here...'></textarea>

@@ -33,6 +33,8 @@ const CAMPAIGN_FIELD_NAMES = [
   // Video / formats
   'protocols', 'playback_methods', 'api_frameworks', 'mime_types',
   'iab_categories',
+  // Product / effect
+  'product_id', 'effect_id',
 ];
 
 // Parse ARRAY literal values, stripping PostgreSQL type casts
