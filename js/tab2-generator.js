@@ -162,6 +162,15 @@ function buildBanner(campaign) {
     banner.api = apiFrameworks.map(api => parseInt(api));
   }
 
+  // Add yoc ext (product_id / effect_id)
+  const bannerExt = {};
+  if (campaign.product_id !== undefined && campaign.product_id !== null && campaign.product_id !== '') {
+    bannerExt.yoc_product = String(campaign.product_id);
+  }
+  const bannerEffects = parsePgArray(campaign.effect_id);
+  bannerExt.yoc_effects = bannerEffects ? bannerEffects.map(e => parseInt(e)) : [];
+  banner.ext = bannerExt;
+
   return banner;
 }
 
@@ -236,6 +245,15 @@ function buildVideo(campaign, placement, linearity) {
   if (apiFrameworks && apiFrameworks.length > 0) {
     video.api = apiFrameworks.map(api => parseInt(api));
   }
+
+  // Add yoc ext (product_id / effect_id)
+  const videoExt = {};
+  if (campaign.product_id !== undefined && campaign.product_id !== null && campaign.product_id !== '') {
+    videoExt.yoc_product = String(campaign.product_id);
+  }
+  const videoEffects = parsePgArray(campaign.effect_id);
+  videoExt.yoc_effects = videoEffects ? videoEffects.map(e => parseInt(e)) : [];
+  video.ext = videoExt;
 
   return video;
 }
